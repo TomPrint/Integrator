@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+private/
+*.sqlite3
+.env
+.venv/
+public/static/
+node_modules/

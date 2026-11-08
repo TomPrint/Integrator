@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-3xl mx-auto"><div class="step-indicator"><span class="current">01 · Źródło</span><span>02 · Reguły</span><span>03 · Podgląd</span></div>
+<p class="eyebrow mb-3">Nowe połączenie</p><h1>{% if editing %}Edytuj integrację{% else %}Zacznijmy od źródła{% endif %}<span class="text-[#4678d0]">.</span></h1>
+<p class="muted mt-3">Podaj publiczny adres pliku CSV. Rozpoznamy jego kolumny i separator.</p>
+<div class="card !mt-7"><form method="post">{% csrf_token %}{{ form.non_field_errors }}
+<p>{{ form.name.label_tag }}{{ form.name }}{{ form.name.errors }}{% if form.name.help_text %}<span class="helptext" id="{{ form.name.auto_id }}_helptext">{{ form.name.help_text }}</span>{% endif %}</p>
+<div class="source-url-field">{{ form.source_url.label_tag }}{{ form.source_url }}{{ form.source_url.errors }}<span class="helptext" id="{{ form.source_url.auto_id }}_helptext">{{ form.source_url.help_text }}</span></div>
+<button class="mt-3">Pobierz i wybierz kolumny <svg class="icon"><use href="#i-arrow"/></svg></button></form>
+</div>
+</div>
+{% endblock %}

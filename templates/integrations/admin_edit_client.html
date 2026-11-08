@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<p><a href="{% url 'admin_client' client.pk %}">← Szczegóły klienta</a></p>
+<h1>Edytuj klienta: {{ client.username }}</h1>
+<div class="card">
+  <form method="post">
+    {% csrf_token %}
+    <h2>Konto</h2>{{ account_form.as_p }}
+    <h2>Dane firmy i faktury</h2>{{ profile_form.as_p }}
+    <button>Zapisz zmiany</button>
+  </form>
+</div>
+{% endblock %}

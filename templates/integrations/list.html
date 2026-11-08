@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flex flex-wrap items-end justify-between gap-5 mb-8">
+  <div><p class="eyebrow mb-3">Twoja przestrzeń robocza</p><h1>Wszystkie integracje<span class="text-[#4678d0]">.</span></h1><p class="muted mt-3 max-w-xl">Wszystkie Twoje źródła danych w jednym miejscu. Zmieniaj, łącz i udostępniaj pliki bez wysiłku.</p></div>
+  {% if integrations|length < profile.limit %}<a class="button" href="{% url 'create' %}"><svg class="icon"><use href="#i-plus"/></svg>Dodaj integrację</a>{% endif %}
+</div>
+<div class="grid gap-4 sm:grid-cols-3 mb-10">
+  <div class="stat-card flex items-center gap-4"><span class="icon-box"><svg class="icon"><use href="#i-link"/></svg></span><div><p class="text-xs muted font-bold">Wykorzystane integracje</p><p class="text-2xl font-extrabold mt-1">{{ integrations|length }} <span class="text-base text-[#526985]">/ {{ profile.limit }}</span></p></div></div>
+  <div class="stat-card flex items-center gap-4"><span class="icon-box !bg-[#f7efd1] !text-[#765a11]"><svg class="icon"><use href="#i-spark"/></svg></span><div><p class="text-xs muted font-bold">Twój plan</p><p class="text-xl font-extrabold mt-1">{{ profile.get_plan_display }}</p></div></div>
+  <div class="stat-card flex items-center gap-4"><span class="icon-box"><svg class="icon"><use href="#i-shield"/></svg></span><div><p class="text-xs muted font-bold">Udostępnianie</p><p class="text-xl font-extrabold mt-1">Prywatny link</p></div></div>
+</div>
+<div class="flex items-center justify-between gap-4 mb-3"><div><p class="eyebrow mb-2">Twoje połączenia</p><h2>Aktywność integracji</h2></div><span class="text-sm muted">{{ integrations|length }} w sumie</span></div>
+{% for item in integrations %}
+<div class="card !my-3 flex flex-wrap items-center justify-between gap-5">
+  <div class="flex items-start sm:items-center gap-4 min-w-0"><span class="icon-box"><svg class="icon"><use href="#i-doc"/></svg></span><div class="min-w-0"><h3><a class="!text-[#153b79] hover:!text-[#4678d0]" href="{% if item.active %}{% url 'result' item.pk %}{% else %}{% url 'configure' item.pk %}{% endif %}">{{ item.name }}</a></h3><p class="muted text-sm mt-1">{{ item.get_interval_hours_display }} <span class="mx-1">·</span> Ostatnia aktualizacja: {{ item.last_success|default:"brak" }}</p>{% if item.update_delay_display %}<p class="notice text-sm">Ostatnia automatyczna aktualizacja zakończyła się z opóźnieniem: {{ item.update_delay_display }} względem planowanego terminu.</p>{% endif %}{% if item.interval_auto_adjusted %}<p class="notice text-sm">Plik źródłowy osiągnął 5 MiB. Częstotliwość automatycznie zmieniono na co 24 godziny.</p>{% endif %}{% if item.last_error %}<p class="alert text-sm">Błąd aktualizacji: {{ item.last_error }}</p>{% endif %}</div></div>
+  <div class="flex items-center gap-4">{% if item.admin_disabled %}<span class="tag tag-warn">Wstrzymana</span>{% elif item.active %}<span class="tag">Aktywna</span>{% else %}<span class="tag tag-warn">Do konfiguracji</span>{% endif %}<a class="secondary button !px-3" aria-label="Otwórz integrację {{ item.name }}" href="{% if item.active %}{% url 'result' item.pk %}{% else %}{% url 'configure' item.pk %}{% endif %}"><svg class="icon"><use href="#i-arrow"/></svg></a></div>
+</div>
+{% empty %}
+<div class="card text-center !py-14"><span class="icon-box mx-auto !w-14 !h-14"><svg class="icon"><use href="#i-link"/></svg></span><h2 class="mt-5">Tutaj zaczyna się Twoja automatyzacja</h2><p class="muted mt-2 mb-6">Dodaj pierwszą integrację i połącz swój plik CSV ze sklepem.</p><a class="button" href="{% url 'create' %}"><svg class="icon"><use href="#i-plus"/></svg>Dodaj pierwszą integrację</a></div>
+{% endfor %}
+{% endblock %}

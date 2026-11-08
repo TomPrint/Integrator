@@ -1,0 +1,83 @@
+{% load static tailwind_tags %}
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Mid-Grator — Twoje dane, połączone</title>
+  {% tailwind_css %}
+</head>
+<body class="min-h-screen flex flex-col">
+<svg xmlns="http://www.w3.org/2000/svg" class="hidden" aria-hidden="true">
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.1 0l2.8-2.8a5 5 0 1 0-7.1-7.1L11.2 4.7"/><path d="M14 11a5 5 0 0 0-7.1 0l-2.8 2.8a5 5 0 0 0 7.1 7.1l1.6-1.6"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 13h6M9 17h6"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M10 17v3H4V4h6v3M14 8l4 4-4 4M8 12h10"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 2.2 6.8L21 11l-6.8 2.2L12 20l-2.2-6.8L3 11l6.8-2.2L12 2zM19 18v4M17 20h4"/></symbol>
+</svg>
+<header class="bg-white/90 border-b border-[#d5deeb]">
+  <div class="mx-auto max-w-7xl px-5 sm:px-8 min-h-20 flex flex-wrap items-center justify-between gap-3 py-3">
+    <a href="{% url 'home' %}" class="header-logo">
+      <img src="{% static 'images/mid-grator-logo.png' %}" width="2000" height="500" alt="Mid-Grator — strona główna">
+    </a>
+    {% if user.is_authenticated %}
+    <nav aria-label="Nawigacja główna" class="flex flex-wrap items-center gap-1">
+      {% if user.is_superuser %}
+      <a class="nav-link" href="{% url 'admin_dashboard' %}"><svg class="icon"><use href="#i-shield"/></svg>Panel administratora</a>
+      {% else %}
+      <a class="nav-link" href="{% url 'integration_list' %}"><svg class="icon"><use href="#i-grid"/></svg>Integracje</a>
+      <a class="nav-link" href="{% url 'invoice' %}"><svg class="icon"><use href="#i-doc"/></svg>Dane Faktury</a>
+      {% endif %}
+      <a class="account-nav" href="{% url 'account' %}" aria-label="Ustawienia konta: {{ user.username }}"><span class="account-avatar">{{ user.username|slice:":1"|upper }}</span><span>{{ user.username }}</span></a>
+      <form class="logout-nav" method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="secondary !px-3 !py-2 !text-xs" title="Wyloguj"><svg class="icon"><use href="#i-out"/></svg><span class="sr-only">Wyloguj</span></button></form>
+    </nav>
+    {% else %}<a class="nav-link" href="{% url 'login' %}">Zaloguj się <svg class="icon"><use href="#i-arrow"/></svg></a>{% endif %}
+  </div>
+</header>
+<main class="w-full max-w-7xl mx-auto px-5 sm:px-8 py-10 md:py-14 flex-1">
+  {% for message in messages %}<div class="{% if message.tags == 'error' %}alert{% else %}notice{% endif %}" role="status">{{ message }}</div>{% endfor %}
+  {% block content %}{% endblock %}
+</main>
+<footer class="relative bg-[#153b79] text-white mt-12">
+  <div class="footer-art" aria-hidden="true">
+    {% for triangle in "1234567890123456789012345678901234567890" %}<i class="footer-triangle"></i>{% endfor %}
+  </div>
+  <div class="relative max-w-7xl mx-auto px-5 sm:px-8 py-12 flex flex-wrap justify-between items-end gap-6">
+    <div><p class="text-xs font-bold tracking-[.18em] uppercase text-[#eedc9a]">Twoje dane są w dobrych rękach</p><p class="mt-2 text-2xl font-bold tracking-tight">Mniej ręcznej pracy.<br><span class="text-[#eedc9a]">Więcej możliwości.</span></p></div>
+    <div class="footer-links">
+      <span>Mid-Grator <span aria-hidden="true">·</span> Integracje bez komplikacji</span>
+      <nav aria-label="Informacje prawne">
+        <a href="{% url 'privacy' %}">Polityka prywatności</a>
+        <a href="{% url 'terms' %}">Regulamin</a>
+        <button type="button" class="cookie-settings-link" data-cookie-open hidden>Ustawienia cookie</button>
+      </nav>
+    </div>
+  </div>
+</footer>
+<section class="cookie-banner" data-cookie-banner hidden role="region" aria-label="Ustawienia plików cookie">
+  <div>
+    <h2>Twoja prywatność</h2>
+    <p>Używamy niezbędnych plików cookie do działania portalu. Za Twoją zgodą możemy korzystać z Google Analytics, aby analizować korzystanie z serwisu. <a href="{% url 'privacy' %}">Polityka prywatności</a></p>
+    <div class="cookie-preferences" data-cookie-preferences hidden>
+      <p><strong>Niezbędne</strong> — zawsze aktywne, potrzebne m.in. do logowania i bezpieczeństwa.</p>
+      <label><input type="checkbox" data-cookie-analytics> <span><strong>Analityczne</strong> — opcjonalny Google Analytics.</span></label>
+    </div>
+    <p class="cookie-error" data-cookie-error role="alert" hidden>Nie udało się odczytać lub zapisać ustawień. Analityka jest wyłączona w tej karcie. Sprawdź pamięć lokalną przeglądarki; jeśli błąd nie ustąpi, wyczyść dane tej strony, aby usunąć wcześniejszą zgodę.</p>
+  </div>
+  <div class="cookie-actions">
+    <button type="button" class="secondary" data-cookie-manage>Dostosuj</button>
+    <button type="button" class="secondary" data-cookie-reject>Odrzuć opcjonalne</button>
+    <button type="button" class="secondary" data-cookie-save hidden>Zapisz wybór</button>
+    <button type="button" data-cookie-accept>Akceptuj wszystkie</button>
+  </div>
+</section>
+<script src="{% static 'js/cookie-consent.js' %}" data-google-analytics-id="{{ google_analytics_id }}" defer></script>
+<script src="{% static 'js/delete-confirmation.js' %}" defer></script>
+</body>
+</html>

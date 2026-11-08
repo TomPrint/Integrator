@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="step-indicator"><span>01 · Źródło</span><span class="current">02 · Reguły</span><span>03 · Podgląd</span></div><p class="eyebrow mb-3">Dostosuj swój plik</p><h1>{{ integration.name }}<span class="text-[#4678d0]">.</span></h1>
+<div class="card"><h2>Kolumny i reguły</h2>
+<p>Zaznacz kolumny do wyjściowego CSV i wybierz dla nich jeden rodzaj reguł. Brak pasującej reguły blokuje publikację; brak reguł oznacza brak zmian.</p>
+{% if error %}<div class="alert">{{ error }}</div>{% endif %}
+{% if formset.non_form_errors %}<div class="alert">{{ formset.non_form_errors }}</div>{% endif %}
+<form method="post" id="column-form">{% csrf_token %}{{ formset.management_form }}
+<div class="card"><h3>Ustawienia pliku i aktualizacji</h3>
+<p class="muted">Dla pliku źródłowego o rozmiarze co najmniej 5 MiB aktualizacja jest dostępna nie częściej niż co 24 godziny. Jeśli plik później urośnie, częstotliwość zostanie automatycznie wydłużona.</p>
+{% for field in settings_form %}
+<fieldset class="settings-options">
+  <legend>{{ field.label }}</legend>
+  {{ field.errors }}
+  {{ field }}
+  {% if field.help_text %}<small id="{{ field.auto_id }}_helptext">{{ field.help_text }}</small>{% endif %}
+</fieldset>
+{% endfor %}
+<small>Zmiany zaczną obowiązywać po potwierdzeniu podglądu i opublikowaniu pliku.</small>
+</div>
+{% for header, form in items %}
+<div class="card column-editor"><strong>{{ header }}</strong>{{ form.non_field_errors }}
+{{ form.selected.errors }}<label>{{ form.selected }} Dołącz kolumnę</label>
+{{ form.output_name.errors }}<label for="{{ form.output_name.id_for_label }}">Nazwa w pliku wyjściowym</label>{{ form.output_name }}
+<div class="rule-mode"></div>
+<div class="rule-panel" data-mode="mapping">
+{{ form.mapping.errors }}<label for="{{ form.mapping.id_for_label }}">Zamiany wartości</label>{{ form.mapping }}
+<small>Bez JavaScript podaj JSON, np. {"1":"10","2":"1","3":"0","4":"0"}.</small>
+</div>
+<div class="rule-panel" data-mode="numeric">
+{{ form.numeric_rules.errors }}<label for="{{ form.numeric_rules.id_for_label }}">Reguły liczbowe</label>{{ form.numeric_rules }}
+<small>Reguły są sprawdzane od góry. Dopuszczalne liczby dziesiętne z kropką lub przecinkiem. Bez JavaScript podaj JSON, np. [{"operator":"&gt;=","threshold":"10","result":"Duża ilość"},{"operator":"&lt;","threshold":"10","result":"Mała ilość"}].</small>
+</div>
+<div class="rule-panel" data-mode="money">
+<fieldset class="settings-options"><legend>Reguła pieniężna</legend>
+{{ form.money_direction.errors }}{{ form.money_direction }}
+{{ form.money_percent.errors }}<label class="percent-label" for="{{ form.money_percent.id_for_label }}">Zmiana w procentach</label>{{ form.money_percent }}
+<small>Dotyczy każdej wartości w kolumnie, np. 100 powiększone o 10% daje 110.00. Wynik ma dwa miejsca po kropce; połowy zaokrąglamy w górę. Nie łącz z innymi regułami tej kolumny.</small>
+</fieldset>
+</div>
+</div>{% endfor %}
+<button>Sprawdź reguły na pliku</button></form>
+</div>
+<a href="{% url 'edit_source' integration.pk %}">Wróć do źródła</a>
+<script>
+document.querySelectorAll('#column-form textarea[id$="-mapping"]').forEach(function(textarea) {
+  let values;
+  try { values = textarea.value.trim() ? JSON.parse(textarea.value) : {}; }
+  catch (_) { return; }
+  if (!values || Array.isArray(values) || typeof values !== 'object') return;
+  const editor = document.createElement('div'), rows = document.createElement('div');
+  const add = document.createElement('button');
+  add.type = 'button'; add.className = 'secondary'; add.textContent = 'Dodaj zamianę';
+  editor.append(rows, add); textarea.after(editor); textarea.hidden = true;
+  function addRow(from, to) {
+    const row = document.createElement('div'); row.className = 'mapping-row';
+    const source = document.createElement('input'), target = document.createElement('input');
+    const remove = document.createElement('button');
+    source.type = target.type = 'text';
+    source.placeholder = 'Wartość w pliku źródłowym'; target.placeholder = 'Wartość wyjściowa';
+    source.value = from; target.value = to;
+    remove.type = 'button'; remove.className = 'secondary'; remove.textContent = 'Usuń';
+    remove.addEventListener('click', () => row.remove());
+    row.append(source, document.createTextNode(' → '), target, document.createTextNode(' '), remove);
+    rows.append(row);
+  }
+  Object.entries(values).forEach(([key, value]) => addRow(key, value));
+  add.addEventListener('click', () => addRow('', ''));
+  textarea.form.addEventListener('submit', function(event) {
+    if (textarea.disabled) return;
+    const mapping = Object.create(null);
+    for (const row of rows.children) {
+      const inputs = row.querySelectorAll('input');
+      if (Object.hasOwn(mapping, inputs[0].value)) {
+        event.preventDefault(); alert('Ta sama wartość źródłowa występuje więcej niż raz.'); return;
+      }
+      mapping[inputs[0].value] = inputs[1].value;
+    }
+    textarea.value = JSON.stringify(mapping);
+  });
+});
+document.querySelectorAll('#column-form textarea[id$="-numeric_rules"]').forEach(function(textarea) {
+  let values;
+  try { values = textarea.value.trim() ? JSON.parse(textarea.value) : []; }
+  catch (_) { return; }
+  if (!Array.isArray(values) || !values.every(value => value && typeof value === 'object' &&
+      ['operator', 'threshold', 'result'].every(key => typeof value[key] === 'string') &&
+      ['<', '<=', '=', '>', '>='].includes(value.operator))) return;
+  const editor = document.createElement('div'), rows = document.createElement('div');
+  const add = document.createElement('button');
+  add.type = 'button'; add.className = 'secondary'; add.textContent = 'Dodaj regułę liczbową';
+  let nextRuleId = 0;
+  editor.append(rows, add); textarea.after(editor); textarea.hidden = true;
+  function addRow(rule) {
+    const row = document.createElement('div'); row.className = 'mapping-row';
+    const operator = document.createElement('fieldset');
+    operator.className = 'settings-options numeric-operator';
+    const legend = document.createElement('legend'); legend.textContent = 'Operator porównania'; operator.append(legend);
+    const threshold = document.createElement('input'), result = document.createElement('input');
+    const remove = document.createElement('button'), up = document.createElement('button'), down = document.createElement('button');
+    const choices = document.createElement('div');
+    const groupName = textarea.id + '-operator-' + nextRuleId++;
+    [['<', 'Mniej niż (<)'], ['<=', 'Mniej lub równo (≤)'], ['=', 'Równe (=)'], ['>', 'Więcej niż (>)'], ['>=', 'Więcej lub równo (≥)']].forEach(([value, label]) => {
+      const option = document.createElement('input'), wrapper = document.createElement('label');
+      option.type = 'radio'; option.name = groupName; option.value = value;
+      option.checked = rule.operator === value; wrapper.append(option, document.createTextNode(label)); choices.append(wrapper);
+    });
+    operator.append(choices);
+    threshold.type = result.type = 'text';
+    threshold.placeholder = 'Próg, np. 10'; threshold.setAttribute('aria-label', 'Próg liczbowy');
+    result.placeholder = 'Wartość wyjściowa'; result.setAttribute('aria-label', 'Wartość wyjściowa');
+    threshold.value = rule.threshold; result.value = rule.result;
+    up.type = down.type = 'button'; up.className = down.className = 'secondary';
+    up.textContent = '↑'; down.textContent = '↓';
+    up.setAttribute('aria-label', 'Przenieś regułę wyżej'); down.setAttribute('aria-label', 'Przenieś regułę niżej');
+    up.addEventListener('click', () => { if (row.previousElementSibling) rows.insertBefore(row, row.previousElementSibling); });
+    down.addEventListener('click', () => { if (row.nextElementSibling) rows.insertBefore(row.nextElementSibling, row); });
+    remove.type = 'button'; remove.className = 'secondary'; remove.textContent = 'Usuń';
+    remove.addEventListener('click', () => row.remove());
+    row.append(operator, threshold, result, up, down, remove); rows.append(row);
+  }
+  values.forEach(addRow);
+  add.addEventListener('click', () => addRow({operator: '>=', threshold: '', result: ''}));
+  textarea.form.addEventListener('submit', function() {
+    if (textarea.disabled) return;
+    textarea.value = JSON.stringify(Array.from(rows.children, row => ({
+      operator: row.querySelector('input[type="radio"]:checked').value,
+      threshold: row.querySelectorAll('input[type="text"]')[0].value,
+      result: row.querySelectorAll('input[type="text"]')[1].value
+    })));
+  });
+});
+document.querySelectorAll('.column-editor').forEach(function(card, index) {
+  const mapping = card.querySelector('textarea[id$="-mapping"]');
+  const numeric = card.querySelector('textarea[id$="-numeric_rules"]');
+  const money = card.querySelectorAll('input[name$="-money_direction"], input[name$="-money_percent"]');
+  const host = card.querySelector('.rule-mode');
+  const fieldset = document.createElement('fieldset'), legend = document.createElement('legend'), choices = document.createElement('div');
+  fieldset.className = 'settings-options'; legend.textContent = 'Rodzaj reguły'; fieldset.append(legend, choices); host.append(fieldset);
+  const hasMapping = mapping.value.trim() && mapping.value.trim() !== '{}';
+  const hasNumeric = numeric.value.trim() && numeric.value.trim() !== '[]';
+  const hasMoney = Array.from(money).some(input => input.type === 'radio' && input.checked && input.value);
+  const initialMode = hasMapping && hasNumeric ? 'legacy' : hasMapping ? 'mapping' : hasNumeric ? 'numeric' : hasMoney ? 'money' : 'none';
+  const modes = [['none', 'Bez zmian'], ['mapping', 'Prosta zamiana'], ['numeric', 'Reguła liczbowa'], ['money', 'Reguła pieniężna']];
+  if (initialMode === 'legacy') modes.push(['legacy', 'Dotychczasowe połączenie reguł']);
+  modes.forEach(([value, title]) => {
+    const label = document.createElement('label'), radio = document.createElement('input');
+    radio.type = 'radio'; radio.name = 'rule-mode-' + index; radio.value = value; radio.checked = value === initialMode;
+    label.append(radio, document.createTextNode(title)); choices.append(label);
+  });
+  const note = document.createElement('small');
+  note.textContent = 'Wybierz jeden rodzaj reguły. Pozostałe zostaną pominięte po zapisaniu.';
+  fieldset.append(note);
+  function updateMode() {
+    const selected = choices.querySelector('input:checked').value;
+    card.querySelectorAll('.rule-panel').forEach(panel => {
+      const active = panel.dataset.mode === selected || (selected === 'legacy' && panel.dataset.mode !== 'money');
+      panel.hidden = !active;
+    });
+    mapping.disabled = selected !== 'mapping' && selected !== 'legacy';
+    numeric.disabled = selected !== 'numeric' && selected !== 'legacy';
+    money.forEach(input => { input.disabled = selected !== 'money'; });
+    note.textContent = selected === 'legacy'
+      ? 'Istniejące połączenie reguł działa bez zmian. Aby je zmienić, wybierz jeden rodzaj reguły.'
+      : 'Wybierz jeden rodzaj reguły. Pozostałe zostaną pominięte po zapisaniu.';
+  }
+  choices.addEventListener('change', updateMode); updateMode();
+});
+</script>
+{% endblock %}

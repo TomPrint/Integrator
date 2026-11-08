@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="step-indicator"><span>01 · Źródło</span><span>02 · Reguły</span><span class="current">03 · Podgląd</span></div>
+<div class="card"><h1>Weryfikacja poprawna</h1>
+<p>Sprawdzono {{ preview.count }} wierszy. Poniżej pierwsze 10 wierszy wyniku. Przed publikacją plik zostanie pobrany i sprawdzony ponownie.</p>
+<p>Separator pliku wyjściowego: <strong>{{ preview.delimiter }}</strong>.</p>
+{% if preview.interval %}<p>Aktualizacja: <strong>{{ preview.interval }}</strong>.</p>{% endif %}
+<div class="scroll"><table><thead><tr>{% for name in preview.names %}<th>{{ name }}</th>{% endfor %}</tr></thead>
+<tbody>{% for row in preview.rows %}<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+<p><a href="{% url 'configure' integration.pk %}">Wróć do reguł</a></p>
+<form method="post" action="{% url 'confirm' integration.pk %}">{% csrf_token %}<button>Potwierdź i opublikuj</button></form>
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+<details class="inline" data-delete-confirmation>
+  <summary class="button danger">{{ label }}</summary>
+  <div class="alert delete-confirmation-panel" role="group" aria-label="Potwierdzenie usunięcia">
+    <p>{{ warning }}</p>
+    <form method="post" action="{{ action }}">
+      {% csrf_token %}
+      <p class="muted" data-delete-status role="status">Przycisk zostanie odblokowany po 5 sekundach.</p>
+      <div class="delete-confirmation-actions">
+        <button class="danger" type="submit" disabled data-delete-submit>Potwierdź usunięcie (5 s)</button>
+        <button class="secondary" type="button" data-delete-cancel>Anuluj</button>
+      </div>
+      <noscript>Do potwierdzenia usunięcia włącz JavaScript.</noscript>
+    </form>
+  </div>
+</details>

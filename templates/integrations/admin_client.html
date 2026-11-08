@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<p><a href="{% url 'admin_dashboard' %}">← Panel administratora</a></p>
+<h1>Klient: {{ client.username }}</h1>
+<p class="muted">Nazwa firmy: {{ profile.company_name|default:"Nie podano" }}</p>
+<div class="card"><a class="button secondary" href="{% url 'admin_edit_client' client.pk %}">Edytuj klienta</a>
+{% url 'admin_delete_client' client.pk as delete_client_url %}
+{% include "integrations/delete_confirmation.html" with action=delete_client_url label="Usuń klienta" warning="Trwale usuniesz konto, dane do faktury, historię akceptacji, wszystkie integracje, ich pliki i linki. Kopie zapasowe i dokumenty poza portalem nie zostaną usunięte." %}</div>
+<div class="card"><h2>Plan i płatność</h2><p>Status: {% if profile.paid %}opłacone{% else %}nieopłacone / wygasło{% endif %}. Wygaśnięcie nie wyłącza integracji automatycznie.</p>
+<form method="post">{% csrf_token %}{{ form.non_field_errors }}
+<fieldset class="settings-options"><legend>Plan</legend>{{ form.plan }}{{ form.plan.errors }}</fieldset>
+<p>{{ form.paid_from.label_tag }}{{ form.paid_from }}{{ form.paid_from.errors }}</p>
+<p>{{ form.paid_until.label_tag }}{{ form.paid_until }}{{ form.paid_until.errors }}</p>
+<p class="muted">Podstawowy: do 2 integracji. Plus: do 4 integracji. Daty opłacenia są opcjonalne; podaj obie albo pozostaw obie puste.</p>
+<button>Zapisz plan</button></form></div>
+<div class="card"><h2>Dane do faktury</h2>
+<p>Firma lub imię i nazwisko: <strong>{{ profile.invoice_name|default:"Nie podano" }}</strong><br>
+NIP: {{ profile.invoice_nip|default:"Nie podano" }}<br>
+Adres: {{ profile.invoice_address|default:"Nie podano"|linebreaksbr }}<br>
+E-mail do faktury: {{ profile.invoice_email|default:"Nie podano" }}</p></div>
+<div class="card"><h2>Akceptacja regulaminu</h2>
+{% for acceptance in acceptances %}
+<p><strong>Zaakceptowano:</strong> {{ acceptance.accepted_at|date:"d.m.Y H:i:s" }}
+<br>Wersja (SHA-256): <code>{{ acceptance.terms_sha256 }}</code>
+<br>{% if acceptance.consumed_at %}Wykorzystano przy dodaniu integracji{% if acceptance.integration %}: {{ acceptance.integration.name }}{% else %} (integracja usunięta){% endif %}.{% else %}Potwierdzenie jeszcze nie zostało wykorzystane do dodania integracji.{% endif %}</p>
+{% empty %}<p>Brak zapisanego potwierdzenia regulaminu.</p>{% endfor %}
+</div>
+<div class="card"><h2>Integracje ({{ integrations|length }} / {{ profile.limit }})</h2>
+{% for item in integrations %}<div class="card"><h3>{{ item.name }}</h3>
+<p>{% if item.admin_disabled %}Wstrzymana — link nie działa{% elif item.active %}Aktywna{% else %}Nieopublikowana{% endif %} · Plik: {% if item.file_size is not None %}{{ item.file_size|filesizeformat }}{% else %}brak{% endif %} · Ostatnia próba: {{ item.last_attempt|default:"brak" }} · Czas: {% if item.last_duration_seconds is not None %}{{ item.last_duration_seconds|floatformat:2 }} s{% else %}brak pomiaru{% endif %}</p>
+{% if item.last_error %}<div class="alert">{{ item.last_error }}</div>{% endif %}
+<form class="inline" method="post" action="{% url 'admin_disable' item.pk %}">{% csrf_token %}<button class="secondary">{% if item.admin_disabled %}Wznów{% else %}Wstrzymaj{% endif %}</button></form>
+{% url 'admin_delete' item.pk as delete_url %}
+{% include "integrations/delete_confirmation.html" with action=delete_url label="Usuń" warning="Trwale usuniesz integrację, reguły, plik i link." %}
+</div>{% empty %}<p>Brak integracji.</p>{% endfor %}</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="account-page">
+  <p class="eyebrow mb-3">Twoje ustawienia</p>
+  <h1>Ustawienia konta<span class="text-[#4678d0]">.</span></h1>
+  <p class="muted mt-3">Zarządzaj adresem e-mail i hasłem do swojego konta.</p>
+  <div class="card">
+    <h2>Dane użytkownika</h2>
+    <p class="muted mt-2">Login: <strong>{{ user.username }}</strong></p>
+    <form method="post">{% csrf_token %}<input type="hidden" name="action" value="email">
+      {{ email_form.as_p }}
+      <button>Zapisz adres e-mail</button>
+    </form>
+  </div>
+  <div class="card">
+    <h2>Zmiana hasła</h2>
+    <p class="muted mt-2">Aby ustawić nowe hasło, podaj najpierw obecne.</p>
+    <form method="post">{% csrf_token %}<input type="hidden" name="action" value="password">
+      {{ password_form.as_p }}
+      <button>Zmień hasło</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
