@@ -115,6 +115,61 @@ class CustomerManagementTests(TestCase):
         self.assertTrue(get_user_model().objects.filter(pk=self.customer.pk).exists())
         self.assertTrue(Integration.objects.filter(pk=obj.pk).exists())
 
+    def test_customer_can_permanently_delete_own_account_and_files(self):
+        output_dir = Path(self.directory.name) / "outputs"
+        output_dir.mkdir()
+        customer_file = output_dir / "customer.csv"
+        other_file = output_dir / "other.csv"
+        customer_file.write_bytes(b"customer")
+        other_file.write_bytes(b"other")
+        integration = Integration.objects.create(
+            owner=self.customer, name="CSV", source_url="https://example.com/a", output_name=customer_file.name,
+        )
+        other_integration = Integration.objects.create(
+            owner=self.other, name="Other", source_url="https://example.com/b", output_name=other_file.name,
+        )
+        TermsAcceptance.objects.create(
+            user=self.customer, terms_sha256="a" * 64, terms_snapshot="terms", integration=integration,
+        )
+        url = reverse("delete_account")
+        self.client.force_login(self.customer)
+
+        self.assertEqual(self.client.get(url).status_code, 405)
+        response = self.client.post(url, follow=True)
+
+        self.assertRedirects(response, reverse("home"))
+        self.assertContains(response, "Usunięto konto klienta")
+        self.assertFalse(get_user_model().objects.filter(pk=self.customer.pk).exists())
+        self.assertFalse(Integration.objects.filter(owner=self.customer).exists())
+        self.assertFalse(TermsAcceptance.objects.filter(user=self.customer).exists())
+        self.assertFalse(customer_file.exists())
+        self.assertTrue(Integration.objects.filter(pk=other_integration.pk).exists())
+        self.assertTrue(other_file.exists())
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_customer_account_deletion_is_not_available_to_admin(self):
+        self.client.force_login(self.admin)
+
+        self.assertEqual(self.client.get(reverse("delete_account")).status_code, 403)
+        self.assertEqual(self.client.post(reverse("delete_account")).status_code, 403)
+        self.assertTrue(get_user_model().objects.filter(pk=self.admin.pk).exists())
+
+    def test_self_deletion_stops_if_integration_is_added_during_locking(self):
+        Integration.objects.create(owner=self.customer, name="CSV", source_url="https://example.com/a")
+
+        @contextmanager
+        def lock_with_new_integration(pk):
+            Integration.objects.create(owner=self.customer, name="New", source_url="https://example.com/b")
+            yield
+
+        self.client.force_login(self.customer)
+        with patch("integrations.views.integration_lock", lock_with_new_integration):
+            response = self.client.post(reverse("delete_account"))
+
+        self.assertRedirects(response, reverse("account"))
+        self.assertTrue(get_user_model().objects.filter(pk=self.customer.pk).exists())
+        self.assertEqual(self.customer.integrations.count(), 2)
+
     def test_delete_confirmation_on_customer_and_integration_pages(self):
         obj = Integration.objects.create(owner=self.customer, name="CSV", source_url="https://example.com/a")
         own = Integration.objects.create(owner=self.admin, name="Starsza", source_url="https://example.com/b")
@@ -131,5 +186,11 @@ class CustomerManagementTests(TestCase):
         self.client.force_login(self.customer)
         response = self.client.get(reverse("result", args=[obj.pk]))
         self.assertContains(response, reverse("delete", args=[obj.pk]))
+        self.assertContains(response, 'disabled data-delete-submit')
+        self.assertContains(response, 'data-delete-cancel')
+        response = self.client.get(reverse("account"))
+        self.assertContains(response, reverse("delete_account"))
+        self.assertContains(response, "Trwale usuniesz swoje konto")
+        self.assertContains(response, 'data-delete-confirmation')
         self.assertContains(response, 'disabled data-delete-submit')
         self.assertContains(response, 'data-delete-cancel')

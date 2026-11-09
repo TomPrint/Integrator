@@ -5,6 +5,7 @@ from django.utils import timezone
 from integrations.models import Integration, ProjectError
 from integrations.services import (IntegrationError, adjust_large_source_schedule, cron_lock, due,
                                    fetch_csv, integration_lock, publish, scheduled_at, source_file, source_size)
+from integrations.trials import expire_trials
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,9 @@ class Command(BaseCommand):
                 raise
 
     def update_due_integrations(self):
+        expired_trials = expire_trials()
+        if expired_trials:
+            self.stdout.write(f"Zakończono testy i usunięto integracje klientów: {expired_trials}.")
         failures = 0
         candidates = Integration.objects.filter(active=True, admin_disabled=False).only(
             "pk", "last_attempt", "last_success", "interval_hours"

@@ -1,3 +1,4 @@
+from datetime import timedelta
 import secrets
 from django.conf import settings
 from django.db import models
@@ -9,10 +10,12 @@ def new_token():
 
 
 class CustomerProfile(models.Model):
-    PLANS = [("basic", "Podstawowy"), ("plus", "Plus")]
+    PLANS = [("basic", "Podstawowy"), ("plus", "Plus"), ("trial", "Testowy (7 dni)")]
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="customer_profile")
     company_name = models.CharField(max_length=200, blank=True)
     plan = models.CharField(max_length=10, choices=PLANS, default="basic")
+    trial_started_at = models.DateTimeField(null=True, blank=True)
+    trial_ended_at = models.DateTimeField(null=True, blank=True)
     paid_from = models.DateField(null=True, blank=True)
     paid_until = models.DateField(null=True, blank=True)
     must_change_password = models.BooleanField(default=False)
@@ -23,7 +26,25 @@ class CustomerProfile(models.Model):
 
     @property
     def limit(self):
+        if self.trial_ended_at:
+            return 0
+        if self.plan == "trial":
+            return 1 if self.trial_active else 0
         return 4 if self.plan == "plus" else 2
+
+    @property
+    def trial_expires_at(self):
+        return self.trial_started_at + timedelta(days=7) if self.trial_started_at else None
+
+    @property
+    def trial_active(self):
+        return bool(self.plan == "trial" and self.trial_expires_at and self.trial_expires_at > timezone.now())
+
+    @property
+    def trial_expired(self):
+        return bool(self.trial_ended_at or (
+            self.plan == "trial" and self.trial_expires_at and self.trial_expires_at <= timezone.now()
+        ))
 
     @property
     def paid(self):

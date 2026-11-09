@@ -5,10 +5,12 @@ from contextlib import ExitStack
 from functools import wraps
 
 from django.contrib import messages
+from django.contrib.auth import logout
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import PasswordChangeForm, SetPasswordForm
+from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import F
@@ -90,6 +92,9 @@ def accept_terms(request):
 @customer_required
 def create(request):
     profile, _ = CustomerProfile.objects.get_or_create(user=request.user)
+    if profile.trial_expired:
+        messages.error(request, "Plan testowy zakończony. Skontaktuj się z administratorem, aby kontynuować korzystanie z usługi.")
+        return redirect("integration_list")
     if not InvoiceForm.is_complete(profile):
         request.session["invoice_before_create"] = True
         messages.error(request, "Przed dodaniem integracji uzupełnij dane do faktury: nazwę lub imię i nazwisko, adres oraz e-mail.")
@@ -323,6 +328,9 @@ def rotate(request, pk):
 @never_cache
 def download(request, token):
     obj = get_object_or_404(Integration.objects.select_related("owner"), token=token, active=True, admin_disabled=False)
+    profile = CustomerProfile.objects.filter(user=obj.owner).first()
+    if profile and profile.trial_expired:
+        raise Http404("Plan testowy został zakończony.")
     from django.conf import settings
     try:
         file = (settings.PRIVATE_DIR / "outputs" / obj.output_name).open("rb")
@@ -381,6 +389,33 @@ def account(request):
         else:
             raise PermissionDenied
     return render(request, "integrations/account.html", {"email_form": email_form, "password_form": password_form})
+
+
+@customer_required
+@require_POST
+def delete_account(request):
+    user_id = request.user.pk
+    integration_ids = list(
+        Integration.objects.filter(owner_id=user_id).order_by("pk").values_list("pk", flat=True)
+    )
+    with ExitStack() as locks:
+        for integration_id in integration_ids:
+            locks.enter_context(integration_lock(integration_id))
+        with transaction.atomic():
+            user_model = get_user_model()
+            if not user_model.objects.filter(pk=user_id, is_superuser=False).update(is_active=F("is_active")):
+                raise Http404
+            integrations = list(Integration.objects.filter(owner_id=user_id).order_by("pk"))
+            if [item.pk for item in integrations] != integration_ids:
+                messages.error(request, "Lista integracji zmieniła się. Sprawdź konto i ponów usuwanie.")
+                return redirect("account")
+            for item in integrations:
+                if item.output_name:
+                    (settings.PRIVATE_DIR / "outputs" / item.output_name).unlink(missing_ok=True)
+            user_model.objects.filter(pk=user_id, is_superuser=False).delete()
+    logout(request)
+    messages.success(request, "Usunięto konto klienta, dane konta, historię akceptacji, integracje i ich pliki.")
+    return redirect("home")
 
 
 @customer_required
@@ -460,9 +495,21 @@ def admin_client(request, pk):
             profile.refresh_from_db()
             form = PlanForm(request.POST, instance=profile)
             if form.is_valid():
-                form.save()
-                messages.success(request, "Zapisano plan i okres opłacenia.")
-                return redirect("admin_client", pk=pk)
+                if form.cleaned_data["plan"] == "trial" and user.integrations.count() > 1:
+                    form.add_error(None, "Przed aktywacją testu usuń nadmiarowe integracje, pozostawiając maksymalnie jedną.")
+                elif form.cleaned_data["plan"] == "trial":
+                    if profile.plan != "trial" or not profile.trial_started_at or profile.trial_expired:
+                        profile.trial_started_at = timezone.now()
+                    profile.trial_ended_at = None
+                    profile.paid_from = None
+                    profile.paid_until = None
+                else:
+                    profile.trial_started_at = None
+                    profile.trial_ended_at = None
+                if not form.errors:
+                    form.save()
+                    messages.success(request, "Zapisano plan i okres opłacenia.")
+                    return redirect("admin_client", pk=pk)
     integrations = list(user.integrations.all())
     for obj in integrations:
         obj.file_size = file_size(obj)

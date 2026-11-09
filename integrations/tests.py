@@ -911,7 +911,7 @@ class AdminAndPlanTests(TestCase):
         self.assertTrue(user.customer_profile.must_change_password)
         self.assertEqual(user.customer_profile.company_name, "Firma ABC")
         self.assertEqual(user.customer_profile.invoice_name, "")
-        self.assertNotContains(self.client.get(reverse("admin_dashboard")), "Firma ABC")
+        self.assertContains(self.client.get(reverse("admin_dashboard")), "Firma ABC")
         self.assertContains(self.client.get(reverse("admin_client", args=[user.pk])), "Firma ABC")
         self.client.logout()
         self.assertTrue(self.client.login(username="nowy", password="StrongInitialPassword982!"))

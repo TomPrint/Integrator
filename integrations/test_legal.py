@@ -17,7 +17,8 @@ class LegalPagesTests(TestCase):
             "co najmniej 30 dni", "dotyczące umów na odległość",
             "bezpłatnie przez 7 kolejnych dni", "Test nie przechodzi automatycznie",
             "W okresie testowym klient może korzystać z jednej integracji.",
-            "usługa zostanie zakończona bez opłaty", "Okres testowy nie skraca płatnego roku",
+            "integracja testowa i jej opublikowane pliki są wtedy usuwane, a konto klienta pozostaje aktywne",
+            "Okres testowy nie skraca płatnego roku",
             "nie wcześniej niż po zakończeniu testu",
         ):
             with self.subTest(text=text):
@@ -33,6 +34,8 @@ class LegalPagesTests(TestCase):
         self.assertIsNotNone(finders.find("images/mid-grator-logo.png"))
         self.assertContains(response, reverse("privacy"))
         self.assertContains(response, reverse("terms"))
+        self.assertContains(response, 'href="https://wickywave.pl/"')
+        self.assertContains(response, 'src="/static/images/wicky-wave-w.png"')
         self.assertContains(response, "data-cookie-banner")
         self.assertContains(response, "Przetestuj darmowo przez 7 dni — 1 integracja.")
         self.assertContains(response, "korzystając z 1 integracji")

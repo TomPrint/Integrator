@@ -7,11 +7,14 @@
 {% url 'admin_delete_client' client.pk as delete_client_url %}
 {% include "integrations/delete_confirmation.html" with action=delete_client_url label="Usuń klienta" warning="Trwale usuniesz konto, dane do faktury, historię akceptacji, wszystkie integracje, ich pliki i linki. Kopie zapasowe i dokumenty poza portalem nie zostaną usunięte." %}</div>
 <div class="card"><h2>Plan i płatność</h2><p>Status: {% if profile.paid %}opłacone{% else %}nieopłacone / wygasło{% endif %}. Wygaśnięcie nie wyłącza integracji automatycznie.</p>
+{% if profile.trial_active %}<p class="notice">Test aktywny od {{ profile.trial_started_at|date:"d.m.Y H:i" }} do {{ profile.trial_expires_at|date:"d.m.Y H:i" }}.</p>{% elif profile.trial_expired %}<p class="alert">Test zakończony {{ profile.trial_ended_at|date:"d.m.Y H:i"|default:"po upływie 7 dni" }}. Integracje testowe są usuwane automatycznie przez zadanie cron.</p>{% endif %}
 <form method="post">{% csrf_token %}{{ form.non_field_errors }}
 <fieldset class="settings-options"><legend>Plan</legend>{{ form.plan }}{{ form.plan.errors }}</fieldset>
+<div data-plan-payment-dates{% if form.plan.value == "trial" %} hidden{% endif %}>
 <p>{{ form.paid_from.label_tag }}{{ form.paid_from }}{{ form.paid_from.errors }}</p>
 <p>{{ form.paid_until.label_tag }}{{ form.paid_until }}{{ form.paid_until.errors }}</p>
-<p class="muted">Podstawowy: do 2 integracji. Plus: do 4 integracji. Daty opłacenia są opcjonalne; podaj obie albo pozostaw obie puste.</p>
+</div>
+<p class="muted">Podstawowy: do 2 integracji. Plus: do 4 integracji. Testowy: 1 integracja przez 7 dni od aktywacji; po zakończeniu testu integracje i pliki są usuwane. Daty opłacenia są opcjonalne; podaj obie albo pozostaw obie puste. Przy aktywacji testu daty opłacenia są czyszczone.</p>
 <button>Zapisz plan</button></form></div>
 <div class="card"><h2>Dane do faktury</h2>
 <p>Firma lub imię i nazwisko: <strong>{{ profile.invoice_name|default:"Nie podano" }}</strong><br>
@@ -33,4 +36,16 @@ E-mail do faktury: {{ profile.invoice_email|default:"Nie podano" }}</p></div>
 {% url 'admin_delete' item.pk as delete_url %}
 {% include "integrations/delete_confirmation.html" with action=delete_url label="Usuń" warning="Trwale usuniesz integrację, reguły, plik i link." %}
 </div>{% empty %}<p>Brak integracji.</p>{% endfor %}</div>
+<script>
+  (() => {
+    const dates = document.querySelector("[data-plan-payment-dates]");
+    const plans = document.querySelectorAll('input[name="plan"]');
+    const updateDatesVisibility = () => {
+      const selectedPlan = document.querySelector('input[name="plan"]:checked');
+      dates.hidden = selectedPlan && selectedPlan.value === "trial";
+    };
+    plans.forEach((plan) => plan.addEventListener("change", updateDatesVisibility));
+    updateDatesVisibility();
+  })();
+</script>
 {% endblock %}

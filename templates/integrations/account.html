@@ -20,5 +20,11 @@
       <button>Zmień hasło</button>
     </form>
   </div>
+  <div class="card">
+    <h2>Usunięcie konta</h2>
+    <p class="muted mt-2">Możesz trwale usunąć swoje konto.</p>
+    {% url 'delete_account' as delete_account_url %}
+    {% include "integrations/delete_confirmation.html" with action=delete_account_url label="Usuń moje konto" warning="Trwale usuniesz swoje konto, dane konta, historię akceptacji regulaminu, wszystkie integracje, ich reguły i opublikowane pliki. Zostaniesz wylogowany. Operacji nie można cofnąć. Kopie zapasowe ani dokumenty przechowywane poza portalem nie zostaną usunięte." %}
+  </div>
 </div>
 {% endblock %}

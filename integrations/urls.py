@@ -7,6 +7,7 @@ urlpatterns = [
     path("new/", views.create, name="create"),
     path("new/terms/", views.accept_terms, name="accept_terms"),
     path("account/", views.account, name="account"),
+    path("account/delete/", views.delete_account, name="delete_account"),
     path("account/password/", views.force_password, name="force_password"),
     path("account/invoice/", views.invoice, name="invoice"),
     path("control/", views.admin_dashboard, name="admin_dashboard"),

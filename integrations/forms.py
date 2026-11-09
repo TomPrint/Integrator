@@ -136,6 +136,10 @@ class PlanForm(forms.ModelForm):
 
     def clean(self):
         data = super().clean()
+        if data.get("plan") == "trial":
+            data["paid_from"] = None
+            data["paid_until"] = None
+            return data
         start, end = data.get("paid_from"), data.get("paid_until")
         if bool(start) != bool(end):
             raise forms.ValidationError("Podaj obie daty okresu albo pozostaw obie puste.")
