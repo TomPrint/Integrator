@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="step-indicator"><span>01 · Źródło</span><span class="current">02 · Reguły</span><span>03 · Podgląd</span></div><p class="eyebrow mb-3">Dostosuj swój plik</p><h1>{{ integration.name }}<span class="text-[#4678d0]">.</span></h1>
-<div class="card"><h2>Kolumny i reguły</h2>
-<p>Zaznacz kolumny do wyjściowego CSV i wybierz dla nich jeden rodzaj reguł. Brak pasującej reguły blokuje publikację; brak reguł oznacza brak zmian.</p>
+<div class="step-indicator"><span>01 · {% if request.LANGUAGE_CODE == "en" %}Source{% else %}Źródło{% endif %}</span><span class="current">02 · {% if request.LANGUAGE_CODE == "en" %}Rules{% else %}Reguły{% endif %}</span><span>03 · {% if request.LANGUAGE_CODE == "en" %}Preview{% else %}Podgląd{% endif %}</span></div><p class="eyebrow mb-3">{% if request.LANGUAGE_CODE == "en" %}Customise your file{% else %}Dostosuj swój plik{% endif %}</p><h1>{{ integration.name }}<span class="text-[#4678d0]">.</span></h1>
+<div class="card"><h2>{% if request.LANGUAGE_CODE == "en" %}Columns and rules{% else %}Kolumny i reguły{% endif %}</h2>
+<p>{% if request.LANGUAGE_CODE == "en" %}Select columns for the output CSV and choose one rule type for each. A missing matching rule blocks publication; no rules means no changes.{% else %}Zaznacz kolumny do wyjściowego CSV i wybierz dla nich jeden rodzaj reguł. Brak pasującej reguły blokuje publikację; brak reguł oznacza brak zmian.{% endif %}</p>
 {% if error %}<div class="alert">{{ error }}</div>{% endif %}
 {% if formset.non_form_errors %}<div class="alert">{{ formset.non_form_errors }}</div>{% endif %}
 <form method="post" id="column-form">{% csrf_token %}{{ formset.management_form }}
-<div class="card"><h3>Ustawienia pliku i aktualizacji</h3>
-<p class="muted">Dla pliku źródłowego o rozmiarze co najmniej 5 MiB aktualizacja jest dostępna nie częściej niż co 24 godziny. Jeśli plik później urośnie, częstotliwość zostanie automatycznie wydłużona.</p>
+<div class="card"><h3>{% if request.LANGUAGE_CODE == "en" %}File and update settings{% else %}Ustawienia pliku i aktualizacji{% endif %}</h3>
+<p class="muted">{% if request.LANGUAGE_CODE == "en" %}For a source file of at least 5 MiB, updates are available no more often than every 24 hours. If the file grows later, the interval will be extended automatically.{% else %}Dla pliku źródłowego o rozmiarze co najmniej 5 MiB aktualizacja jest dostępna nie częściej niż co 24 godziny. Jeśli plik później urośnie, częstotliwość zostanie automatycznie wydłużona.{% endif %}</p>
 {% for field in settings_form %}
 <fieldset class="settings-options">
   <legend>{{ field.label }}</legend>
@@ -16,32 +16,32 @@
   {% if field.help_text %}<small id="{{ field.auto_id }}_helptext">{{ field.help_text }}</small>{% endif %}
 </fieldset>
 {% endfor %}
-<small>Zmiany zaczną obowiązywać po potwierdzeniu podglądu i opublikowaniu pliku.</small>
+<small>{% if request.LANGUAGE_CODE == "en" %}Changes take effect after confirming the preview and publishing the file.{% else %}Zmiany zaczną obowiązywać po potwierdzeniu podglądu i opublikowaniu pliku.{% endif %}</small>
 </div>
 {% for header, form in items %}
 <div class="card column-editor"><strong>{{ header }}</strong>{{ form.non_field_errors }}
-{{ form.selected.errors }}<label>{{ form.selected }} Dołącz kolumnę</label>
-{{ form.output_name.errors }}<label for="{{ form.output_name.id_for_label }}">Nazwa w pliku wyjściowym</label>{{ form.output_name }}
+{{ form.selected.errors }}<label>{{ form.selected }} {% if request.LANGUAGE_CODE == "en" %}Include column{% else %}Dołącz kolumnę{% endif %}</label>
+{{ form.output_name.errors }}<label for="{{ form.output_name.id_for_label }}">{% if request.LANGUAGE_CODE == "en" %}Output file column name{% else %}Nazwa w pliku wyjściowym{% endif %}</label>{{ form.output_name }}
 <div class="rule-mode"></div>
 <div class="rule-panel" data-mode="mapping">
-{{ form.mapping.errors }}<label for="{{ form.mapping.id_for_label }}">Zamiany wartości</label>{{ form.mapping }}
-<small>Bez JavaScript podaj JSON, np. {"1":"10","2":"1","3":"0","4":"0"}.</small>
+{{ form.mapping.errors }}<label for="{{ form.mapping.id_for_label }}">{% if request.LANGUAGE_CODE == "en" %}Value replacements{% else %}Zamiany wartości{% endif %}</label>{{ form.mapping }}
+<small>{% if request.LANGUAGE_CODE == "en" %}Without JavaScript, enter JSON, e.g.{% else %}Bez JavaScript podaj JSON, np.{% endif %} {"1":"10","2":"1","3":"0","4":"0"}.</small>
 </div>
 <div class="rule-panel" data-mode="numeric">
-{{ form.numeric_rules.errors }}<label for="{{ form.numeric_rules.id_for_label }}">Reguły liczbowe</label>{{ form.numeric_rules }}
-<small>Reguły są sprawdzane od góry. Dopuszczalne liczby dziesiętne z kropką lub przecinkiem. Bez JavaScript podaj JSON, np. [{"operator":"&gt;=","threshold":"10","result":"Duża ilość"},{"operator":"&lt;","threshold":"10","result":"Mała ilość"}].</small>
+{{ form.numeric_rules.errors }}<label for="{{ form.numeric_rules.id_for_label }}">{% if request.LANGUAGE_CODE == "en" %}Numeric rules{% else %}Reguły liczbowe{% endif %}</label>{{ form.numeric_rules }}
+<small>{% if request.LANGUAGE_CODE == "en" %}Rules are checked from top to bottom. Decimal numbers may use a dot or comma. Without JavaScript, enter JSON, e.g. [{"operator":"&gt;=","threshold":"10","result":"High quantity"},{"operator":"&lt;","threshold":"10","result":"Low quantity"}].{% else %}Reguły są sprawdzane od góry. Dopuszczalne liczby dziesiętne z kropką lub przecinkiem. Bez JavaScript podaj JSON, np. [{"operator":"&gt;=","threshold":"10","result":"Duża ilość"},{"operator":"&lt;","threshold":"10","result":"Mała ilość"}].{% endif %}</small>
 </div>
 <div class="rule-panel" data-mode="money">
-<fieldset class="settings-options"><legend>Reguła pieniężna</legend>
+<fieldset class="settings-options"><legend>{% if request.LANGUAGE_CODE == "en" %}Price rule{% else %}Reguła pieniężna{% endif %}</legend>
 {{ form.money_direction.errors }}{{ form.money_direction }}
-{{ form.money_percent.errors }}<label class="percent-label" for="{{ form.money_percent.id_for_label }}">Zmiana w procentach</label>{{ form.money_percent }}
-<small>Dotyczy każdej wartości w kolumnie, np. 100 powiększone o 10% daje 110.00. Wynik ma dwa miejsca po kropce; połowy zaokrąglamy w górę. Nie łącz z innymi regułami tej kolumny.</small>
+{{ form.money_percent.errors }}<label class="percent-label" for="{{ form.money_percent.id_for_label }}">{% if request.LANGUAGE_CODE == "en" %}Percentage change{% else %}Zmiana w procentach{% endif %}</label>{{ form.money_percent }}
+<small>{% if request.LANGUAGE_CODE == "en" %}Applies to each value in the column, e.g. 100 increased by 10% gives 110.00. The result has two decimal places; halves are rounded up. Do not combine with other rules for this column.{% else %}Dotyczy każdej wartości w kolumnie, np. 100 powiększone o 10% daje 110.00. Wynik ma dwa miejsca po kropce; połowy zaokrąglamy w górę. Nie łącz z innymi regułami tej kolumny.{% endif %}</small>
 </fieldset>
 </div>
 </div>{% endfor %}
-<button>Sprawdź reguły na pliku</button></form>
+<button>{% if request.LANGUAGE_CODE == "en" %}Check rules on file{% else %}Sprawdź reguły na pliku{% endif %}</button></form>
 </div>
-<a href="{% url 'edit_source' integration.pk %}">Wróć do źródła</a>
+<a href="{% url 'edit_source' integration.pk %}">{% if request.LANGUAGE_CODE == "en" %}Back to source{% else %}Wróć do źródła{% endif %}</a>
 <script>
 document.querySelectorAll('#column-form textarea[id$="-mapping"]').forEach(function(textarea) {
   let values;
@@ -50,16 +50,16 @@ document.querySelectorAll('#column-form textarea[id$="-mapping"]').forEach(funct
   if (!values || Array.isArray(values) || typeof values !== 'object') return;
   const editor = document.createElement('div'), rows = document.createElement('div');
   const add = document.createElement('button');
-  add.type = 'button'; add.className = 'secondary'; add.textContent = 'Dodaj zamianę';
+  add.type = 'button'; add.className = 'secondary'; add.textContent = '{% if request.LANGUAGE_CODE == "en" %}Add replacement{% else %}Dodaj zamianę{% endif %}';
   editor.append(rows, add); textarea.after(editor); textarea.hidden = true;
   function addRow(from, to) {
     const row = document.createElement('div'); row.className = 'mapping-row';
     const source = document.createElement('input'), target = document.createElement('input');
     const remove = document.createElement('button');
     source.type = target.type = 'text';
-    source.placeholder = 'Wartość w pliku źródłowym'; target.placeholder = 'Wartość wyjściowa';
+    source.placeholder = '{% if request.LANGUAGE_CODE == "en" %}Source value{% else %}Wartość w pliku źródłowym{% endif %}'; target.placeholder = '{% if request.LANGUAGE_CODE == "en" %}Output value{% else %}Wartość wyjściowa{% endif %}';
     source.value = from; target.value = to;
-    remove.type = 'button'; remove.className = 'secondary'; remove.textContent = 'Usuń';
+    remove.type = 'button'; remove.className = 'secondary'; remove.textContent = '{% if request.LANGUAGE_CODE == "en" %}Remove{% else %}Usuń{% endif %}';
     remove.addEventListener('click', () => row.remove());
     row.append(source, document.createTextNode(' → '), target, document.createTextNode(' '), remove);
     rows.append(row);
@@ -72,7 +72,7 @@ document.querySelectorAll('#column-form textarea[id$="-mapping"]').forEach(funct
     for (const row of rows.children) {
       const inputs = row.querySelectorAll('input');
       if (Object.hasOwn(mapping, inputs[0].value)) {
-        event.preventDefault(); alert('Ta sama wartość źródłowa występuje więcej niż raz.'); return;
+        event.preventDefault(); alert('{% if request.LANGUAGE_CODE == "en" %}The same source value appears more than once.{% else %}Ta sama wartość źródłowa występuje więcej niż raz.{% endif %}'); return;
       }
       mapping[inputs[0].value] = inputs[1].value;
     }
@@ -88,34 +88,34 @@ document.querySelectorAll('#column-form textarea[id$="-numeric_rules"]').forEach
       ['<', '<=', '=', '>', '>='].includes(value.operator))) return;
   const editor = document.createElement('div'), rows = document.createElement('div');
   const add = document.createElement('button');
-  add.type = 'button'; add.className = 'secondary'; add.textContent = 'Dodaj regułę liczbową';
+  add.type = 'button'; add.className = 'secondary'; add.textContent = '{% if request.LANGUAGE_CODE == "en" %}Add numeric rule{% else %}Dodaj regułę liczbową{% endif %}';
   let nextRuleId = 0;
   editor.append(rows, add); textarea.after(editor); textarea.hidden = true;
   function addRow(rule) {
     const row = document.createElement('div'); row.className = 'mapping-row';
     const operator = document.createElement('fieldset');
     operator.className = 'settings-options numeric-operator';
-    const legend = document.createElement('legend'); legend.textContent = 'Operator porównania'; operator.append(legend);
+    const legend = document.createElement('legend'); legend.textContent = '{% if request.LANGUAGE_CODE == "en" %}Comparison operator{% else %}Operator porównania{% endif %}'; operator.append(legend);
     const threshold = document.createElement('input'), result = document.createElement('input');
     const remove = document.createElement('button'), up = document.createElement('button'), down = document.createElement('button');
     const choices = document.createElement('div');
     const groupName = textarea.id + '-operator-' + nextRuleId++;
-    [['<', 'Mniej niż (<)'], ['<=', 'Mniej lub równo (≤)'], ['=', 'Równe (=)'], ['>', 'Więcej niż (>)'], ['>=', 'Więcej lub równo (≥)']].forEach(([value, label]) => {
+    [['<', '{% if request.LANGUAGE_CODE == "en" %}Less than (<){% else %}Mniej niż (<){% endif %}'], ['<=', '{% if request.LANGUAGE_CODE == "en" %}Less than or equal (≤){% else %}Mniej lub równo (≤){% endif %}'], ['=', '{% if request.LANGUAGE_CODE == "en" %}Equal (=){% else %}Równe (=){% endif %}'], ['>', '{% if request.LANGUAGE_CODE == "en" %}Greater than (>){% else %}Więcej niż (>){% endif %}'], ['>=', '{% if request.LANGUAGE_CODE == "en" %}Greater than or equal (≥){% else %}Więcej lub równo (≥){% endif %}']].forEach(([value, label]) => {
       const option = document.createElement('input'), wrapper = document.createElement('label');
       option.type = 'radio'; option.name = groupName; option.value = value;
       option.checked = rule.operator === value; wrapper.append(option, document.createTextNode(label)); choices.append(wrapper);
     });
     operator.append(choices);
     threshold.type = result.type = 'text';
-    threshold.placeholder = 'Próg, np. 10'; threshold.setAttribute('aria-label', 'Próg liczbowy');
-    result.placeholder = 'Wartość wyjściowa'; result.setAttribute('aria-label', 'Wartość wyjściowa');
+    threshold.placeholder = '{% if request.LANGUAGE_CODE == "en" %}Threshold, e.g. 10{% else %}Próg, np. 10{% endif %}'; threshold.setAttribute('aria-label', '{% if request.LANGUAGE_CODE == "en" %}Numeric threshold{% else %}Próg liczbowy{% endif %}');
+    result.placeholder = '{% if request.LANGUAGE_CODE == "en" %}Output value{% else %}Wartość wyjściowa{% endif %}'; result.setAttribute('aria-label', '{% if request.LANGUAGE_CODE == "en" %}Output value{% else %}Wartość wyjściowa{% endif %}');
     threshold.value = rule.threshold; result.value = rule.result;
     up.type = down.type = 'button'; up.className = down.className = 'secondary';
     up.textContent = '↑'; down.textContent = '↓';
-    up.setAttribute('aria-label', 'Przenieś regułę wyżej'); down.setAttribute('aria-label', 'Przenieś regułę niżej');
+    up.setAttribute('aria-label', '{% if request.LANGUAGE_CODE == "en" %}Move rule up{% else %}Przenieś regułę wyżej{% endif %}'); down.setAttribute('aria-label', '{% if request.LANGUAGE_CODE == "en" %}Move rule down{% else %}Przenieś regułę niżej{% endif %}');
     up.addEventListener('click', () => { if (row.previousElementSibling) rows.insertBefore(row, row.previousElementSibling); });
     down.addEventListener('click', () => { if (row.nextElementSibling) rows.insertBefore(row.nextElementSibling, row); });
-    remove.type = 'button'; remove.className = 'secondary'; remove.textContent = 'Usuń';
+    remove.type = 'button'; remove.className = 'secondary'; remove.textContent = '{% if request.LANGUAGE_CODE == "en" %}Remove{% else %}Usuń{% endif %}';
     remove.addEventListener('click', () => row.remove());
     row.append(operator, threshold, result, up, down, remove); rows.append(row);
   }
@@ -136,20 +136,20 @@ document.querySelectorAll('.column-editor').forEach(function(card, index) {
   const money = card.querySelectorAll('input[name$="-money_direction"], input[name$="-money_percent"]');
   const host = card.querySelector('.rule-mode');
   const fieldset = document.createElement('fieldset'), legend = document.createElement('legend'), choices = document.createElement('div');
-  fieldset.className = 'settings-options'; legend.textContent = 'Rodzaj reguły'; fieldset.append(legend, choices); host.append(fieldset);
+  fieldset.className = 'settings-options'; legend.textContent = '{% if request.LANGUAGE_CODE == "en" %}Rule type{% else %}Rodzaj reguły{% endif %}'; fieldset.append(legend, choices); host.append(fieldset);
   const hasMapping = mapping.value.trim() && mapping.value.trim() !== '{}';
   const hasNumeric = numeric.value.trim() && numeric.value.trim() !== '[]';
   const hasMoney = Array.from(money).some(input => input.type === 'radio' && input.checked && input.value);
   const initialMode = hasMapping && hasNumeric ? 'legacy' : hasMapping ? 'mapping' : hasNumeric ? 'numeric' : hasMoney ? 'money' : 'none';
-  const modes = [['none', 'Bez zmian'], ['mapping', 'Prosta zamiana'], ['numeric', 'Reguła liczbowa'], ['money', 'Reguła pieniężna']];
-  if (initialMode === 'legacy') modes.push(['legacy', 'Dotychczasowe połączenie reguł']);
+  const modes = [['none', '{% if request.LANGUAGE_CODE == "en" %}No changes{% else %}Bez zmian{% endif %}'], ['mapping', '{% if request.LANGUAGE_CODE == "en" %}Simple replacement{% else %}Prosta zamiana{% endif %}'], ['numeric', '{% if request.LANGUAGE_CODE == "en" %}Numeric rule{% else %}Reguła liczbowa{% endif %}'], ['money', '{% if request.LANGUAGE_CODE == "en" %}Price rule{% else %}Reguła pieniężna{% endif %}']];
+  if (initialMode === 'legacy') modes.push(['legacy', '{% if request.LANGUAGE_CODE == "en" %}Existing combination of rules{% else %}Dotychczasowe połączenie reguł{% endif %}']);
   modes.forEach(([value, title]) => {
     const label = document.createElement('label'), radio = document.createElement('input');
     radio.type = 'radio'; radio.name = 'rule-mode-' + index; radio.value = value; radio.checked = value === initialMode;
     label.append(radio, document.createTextNode(title)); choices.append(label);
   });
   const note = document.createElement('small');
-  note.textContent = 'Wybierz jeden rodzaj reguły. Pozostałe zostaną pominięte po zapisaniu.';
+  note.textContent = '{% if request.LANGUAGE_CODE == "en" %}Choose one rule type. The others will be omitted when saved.{% else %}Wybierz jeden rodzaj reguły. Pozostałe zostaną pominięte po zapisaniu.{% endif %}';
   fieldset.append(note);
   function updateMode() {
     const selected = choices.querySelector('input:checked').value;
@@ -161,8 +161,8 @@ document.querySelectorAll('.column-editor').forEach(function(card, index) {
     numeric.disabled = selected !== 'numeric' && selected !== 'legacy';
     money.forEach(input => { input.disabled = selected !== 'money'; });
     note.textContent = selected === 'legacy'
-      ? 'Istniejące połączenie reguł działa bez zmian. Aby je zmienić, wybierz jeden rodzaj reguły.'
-      : 'Wybierz jeden rodzaj reguły. Pozostałe zostaną pominięte po zapisaniu.';
+      ? '{% if request.LANGUAGE_CODE == "en" %}The existing combination of rules continues unchanged. To change it, choose one rule type.{% else %}Istniejące połączenie reguł działa bez zmian. Aby je zmienić, wybierz jeden rodzaj reguły.{% endif %}'
+      : '{% if request.LANGUAGE_CODE == "en" %}Choose one rule type. The others will be omitted when saved.{% else %}Wybierz jeden rodzaj reguły. Pozostałe zostaną pominięte po zapisaniu.{% endif %}';
   }
   choices.addEventListener('change', updateMode); updateMode();
 });

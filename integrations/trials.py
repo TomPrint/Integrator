@@ -2,11 +2,20 @@ from contextlib import ExitStack
 from datetime import timedelta
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 
 from .models import CustomerProfile, Integration
 from .services import integration_lock
+
+
+def delete_integrations(integrations):
+    for item in integrations:
+        if item.output_name:
+            (settings.PRIVATE_DIR / "outputs" / item.output_name).unlink(missing_ok=True)
+        item.delete()
 
 
 def expire_trials(now=None):
@@ -26,6 +35,10 @@ def expire_trials(now=None):
             for integration_id in integration_ids:
                 locks.enter_context(integration_lock(integration_id))
             with transaction.atomic():
+                user_id = CustomerProfile.objects.filter(pk=profile_id).values_list("user_id", flat=True).first()
+                if user_id is None:
+                    continue
+                get_user_model().objects.filter(pk=user_id).update(is_active=F("is_active"))
                 profile = CustomerProfile.objects.select_for_update().filter(
                     pk=profile_id, plan="trial", trial_started_at__lte=cutoff,
                 ).first()
@@ -34,14 +47,12 @@ def expire_trials(now=None):
                 integrations = list(Integration.objects.filter(owner_id=profile.user_id).order_by("pk"))
                 if [item.pk for item in integrations] != integration_ids:
                     continue
-                for item in integrations:
-                    if item.output_name:
-                        (settings.PRIVATE_DIR / "outputs" / item.output_name).unlink(missing_ok=True)
-                Integration.objects.filter(owner_id=profile.user_id).delete()
-                profile.plan = "basic"
-                profile.trial_ended_at = now
-                profile.paid_from = None
-                profile.paid_until = None
-                profile.save(update_fields=["plan", "trial_ended_at", "paid_from", "paid_until"])
+                if profile.trial_started_at <= now - timedelta(days=27):
+                    delete_integrations(integrations)
+                else:
+                    Integration.objects.filter(owner_id=profile.user_id).update(active=False)
+                if not profile.trial_ended_at:
+                    profile.trial_ended_at = profile.trial_expires_at
+                    profile.save(update_fields=["trial_ended_at"])
                 expired += 1
     return expired

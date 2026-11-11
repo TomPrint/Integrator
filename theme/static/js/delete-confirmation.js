@@ -3,13 +3,16 @@ document.querySelectorAll("[data-delete-confirmation]").forEach((details) => {
   const status = details.querySelector("[data-delete-status]");
   const form = button.form;
   const cancel = details.querySelector("[data-delete-cancel]");
+  const confirmLabel = details.dataset.confirmLabel;
+  const waitLabel = details.dataset.waitLabel;
+  const readyLabel = details.dataset.readyLabel;
   let timer;
 
   function reset() {
     clearInterval(timer);
     button.disabled = true;
-    button.textContent = "Potwierdź usunięcie (5 s)";
-    status.textContent = "Przycisk zostanie odblokowany po 5 sekundach.";
+    button.textContent = `${confirmLabel} (5 s)`;
+    status.textContent = waitLabel;
   }
 
   details.addEventListener("toggle", () => {
@@ -20,11 +23,11 @@ document.querySelectorAll("[data-delete-confirmation]").forEach((details) => {
       const remaining = Math.ceil((deadline - performance.now()) / 1000);
       if (remaining <= 0) {
         clearInterval(timer);
-        button.textContent = "Potwierdź usunięcie";
+        button.textContent = confirmLabel;
         button.disabled = false;
-        status.textContent = "Możesz potwierdzić trwałe usunięcie.";
+        status.textContent = readyLabel;
       } else {
-        button.textContent = `Potwierdź usunięcie (${remaining} s)`;
+        button.textContent = `${confirmLabel} (${remaining} s)`;
       }
     }, 100);
   });

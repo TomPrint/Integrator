@@ -16,6 +16,7 @@ from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.utils import timezone
+from .localization import localized
 
 MAX_BYTES = 20 * 1024 * 1024
 MAX_COLUMNS = 200
@@ -62,7 +63,7 @@ class LimitedOutput:
         data = text.encode("utf-8")
         self.size += len(data)
         if self.size > MAX_OUTPUT_BYTES:
-            raise IntegrationError("Plik wynikowy przekracza limit 20 MiB.")
+            raise IntegrationError(str(localized("Plik wynikowy przekracza limit 20 MiB.", "The output file exceeds the 20 MiB limit.")))
         if self.output is not None:
             self.output.write(data)
         return len(text)
@@ -81,13 +82,13 @@ def source_file(data):
 def fetch_csv(url):
     parts = urlsplit(url)
     if parts.scheme not in ("http", "https") or not parts.hostname or parts.username or parts.password:
-        raise IntegrationError("Podaj poprawny publiczny adres HTTP lub HTTPS bez danych logowania.")
+        raise IntegrationError(str(localized("Podaj poprawny publiczny adres HTTP lub HTTPS bez danych logowania.", "Enter a valid public HTTP or HTTPS address without credentials.")))
     try:
         port = parts.port or (443 if parts.scheme == "https" else 80)
         addresses = socket.getaddrinfo(parts.hostname, port, type=socket.SOCK_STREAM)
         ips = {item[4][0] for item in addresses}
         if not ips or any(not ipaddress.ip_address(ip).is_global for ip in ips):
-            raise IntegrationError("Adres źródła musi wskazywać wyłącznie publiczne adresy IP.")
+            raise IntegrationError(str(localized("Adres źródła musi wskazywać wyłącznie publiczne adresy IP.", "The source address must resolve only to public IP addresses.")))
         address = sorted(ips)[0]
         cls = http.client.HTTPSConnection if parts.scheme == "https" else http.client.HTTPConnection
         conn = cls(parts.hostname, port, timeout=30)
@@ -102,7 +103,7 @@ def fetch_csv(url):
             conn.request("GET", target, headers={"User-Agent": "CSV-Integrator/1.0", "Accept": "text/csv,*/*"})
             response = conn.getresponse()
             if response.status != 200:
-                raise IntegrationError(f"Źródło odpowiedziało kodem HTTP {response.status}; przekierowania nie są obsługiwane.")
+                raise IntegrationError(str(localized(f"Źródło odpowiedziało kodem HTTP {response.status}; przekierowania nie są obsługiwane.", f"The source returned HTTP {response.status}; redirects are not supported.")))
             temp = tempfile.TemporaryFile(mode="w+b")
             try:
                 size = 0
@@ -112,10 +113,10 @@ def fetch_csv(url):
                         break
                     size += len(chunk)
                     if size > MAX_BYTES:
-                        raise IntegrationError("Plik przekracza limit 20 MiB.")
+                        raise IntegrationError(str(localized("Plik przekracza limit 20 MiB.", "The file exceeds the 20 MiB limit.")))
                     temp.write(chunk)
                 if not size:
-                    raise IntegrationError("Plik źródłowy jest pusty.")
+                    raise IntegrationError(str(localized("Plik źródłowy jest pusty.", "The source file is empty.")))
                 temp.seek(0)
                 return temp
             except BaseException:
@@ -126,7 +127,7 @@ def fetch_csv(url):
     except IntegrationError:
         raise
     except (OSError, ValueError, http.client.HTTPException) as exc:
-        raise IntegrationError(f"Nie można pobrać pliku źródłowego: {exc}") from exc
+        raise IntegrationError(f"{localized('Nie można pobrać pliku źródłowego', 'Could not download the source file')}: {exc}") from exc
 
 
 def inspect_csv(source):
@@ -144,38 +145,39 @@ def inspect_csv(source):
         except UnicodeDecodeError:
             continue
     else:
-        raise IntegrationError("Nie rozpoznano kodowania pliku (obsługiwane: UTF-8 i Windows-1250).")
+        raise IntegrationError(str(localized("Nie rozpoznano kodowania pliku (obsługiwane: UTF-8 i Windows-1250).", "The file encoding could not be detected (supported: UTF-8 and Windows-1250).")))
     source.seek(0)
     text = io.TextIOWrapper(source, encoding=encoding, newline="")
     try:
         sample = text.read(16384)
         if sample.lstrip().lower().startswith(("<!doctype html", "<html")):
-            raise IntegrationError("Adres zwraca stronę HTML zamiast pliku CSV.")
+            raise IntegrationError(str(localized("Adres zwraca stronę HTML zamiast pliku CSV.", "The address returns an HTML page instead of a CSV file.")))
         dialect = csv.Sniffer().sniff(sample, delimiters=";,\t|")
         text.seek(0)
         reader = csv.reader(text, delimiter=dialect.delimiter, strict=True)
         headers = next(reader)
     except (csv.Error, StopIteration) as exc:
-        raise IntegrationError("Nie można rozpoznać separatora lub nagłówka CSV.") from exc
+        raise IntegrationError(str(localized("Nie można rozpoznać separatora lub nagłówka CSV.", "Could not detect the CSV delimiter or header."))) from exc
     finally:
         text.detach()
     if not headers or len(headers) > MAX_COLUMNS or any(not h or len(h) > 200 for h in headers):
-        raise IntegrationError("Nagłówek CSV jest pusty lub zawiera niepoprawne nazwy kolumn (limit 200).")
+        raise IntegrationError(str(localized("Nagłówek CSV jest pusty lub zawiera niepoprawne nazwy kolumn (limit 200).", "The CSV header is empty or contains invalid column names (limit 200).")))
     if len(set(headers)) != len(headers):
-        raise IntegrationError("Nazwy kolumn w pliku źródłowym muszą być unikalne.")
+        raise IntegrationError(str(localized("Nazwy kolumn w pliku źródłowym muszą być unikalne.", "Source column names must be unique.")))
     source.seek(0)
     return headers, dialect.delimiter, encoding
 
 
 OUTPUT_DELIMITER_CHARACTERS = {"semicolon": ";", "comma": ",", "tab": "\t", "pipe": "|"}
-DELIMITER_LABELS = {";": "średnik ;", ",": "przecinek ,", "\t": "tabulator", "|": "pionowa kreska |"}
+DELIMITER_LABELS = {";": localized("średnik ;", "semicolon ;"), ",": localized("przecinek ,", "comma ,"),
+                    "\t": localized("tabulator", "tab"), "|": localized("pionowa kreska |", "pipe |")}
 
 
 def source_delimiter_label(delimiter):
     try:
         return DELIMITER_LABELS[delimiter]
     except KeyError as exc:
-        raise IntegrationError("Nieznany separator pliku źródłowego.") from exc
+        raise IntegrationError(str(localized("Nieznany separator pliku źródłowego.", "Unknown source file delimiter."))) from exc
 
 
 def output_delimiter_character(selection, source_delimiter):
@@ -184,16 +186,16 @@ def output_delimiter_character(selection, source_delimiter):
     try:
         return OUTPUT_DELIMITER_CHARACTERS[selection]
     except KeyError as exc:
-        raise IntegrationError("Niepoprawny separator pliku wyjściowego.") from exc
+        raise IntegrationError(str(localized("Niepoprawny separator pliku wyjściowego.", "Invalid output file delimiter."))) from exc
 
 
 def transform(source, columns, output=None, output_delimiter="source"):
     headers, delimiter, encoding = inspect_csv(source)
     if not columns:
-        raise IntegrationError("Wybierz przynajmniej jedną kolumnę.")
+        raise IntegrationError(str(localized("Wybierz przynajmniej jedną kolumnę.", "Select at least one column.")))
     missing = [c["source"] for c in columns if c["source"] not in headers]
     if missing:
-        raise IntegrationError("Brakuje kolumn w źródle: " + ", ".join(missing))
+        raise IntegrationError(str(localized("Brakuje kolumn w źródle: ", "Columns missing from the source: ")) + ", ".join(missing))
     from .rules import apply_money_rule, compile_money_rule, compile_numeric_rules, matches_numeric_rule, parse_number
     try:
         numeric_rules = [compile_numeric_rules(col.get("numeric_rules", [])) for col in columns]
@@ -201,7 +203,7 @@ def transform(source, columns, output=None, output_delimiter="source"):
         if any(money and (col["mapping"] or numeric) for col, numeric, money in zip(columns, numeric_rules, money_rules)):
             raise ValueError("Reguły pieniężnej nie można łączyć z innymi regułami tej kolumny.")
     except ValueError as exc:
-        raise IntegrationError(f"Niepoprawne reguły liczbowe: {exc}") from exc
+        raise IntegrationError(f"{localized('Niepoprawne reguły liczbowe', 'Invalid numeric rules')}: {exc}") from exc
     out = LimitedOutput(output)
     writer = csv.writer(out, delimiter=output_delimiter_character(output_delimiter, delimiter), lineterminator="\r\n")
     writer.writerow([c["name"] for c in columns])
@@ -216,9 +218,9 @@ def transform(source, columns, output=None, output_delimiter="source"):
         for row in reader:
             count += 1
             if count > MAX_ROWS:
-                raise IntegrationError("Plik przekracza limit 200 000 wierszy.")
+                raise IntegrationError(str(localized("Plik przekracza limit 200 000 wierszy.", "The file exceeds the 200,000-row limit.")))
             if len(row) != len(headers):
-                raise IntegrationError(f"Wiersz {reader.line_num} ma {len(row)} pól zamiast {len(headers)}.")
+                raise IntegrationError(str(localized(f"Wiersz {reader.line_num} ma {len(row)} pól zamiast {len(headers)}.", f"Row {reader.line_num} has {len(row)} fields instead of {len(headers)}.")))
             result = []
             for index, col, rules, money in zip(indexes, columns, numeric_rules, money_rules):
                 value = row[index]
@@ -228,7 +230,7 @@ def transform(source, columns, output=None, output_delimiter="source"):
                         result.append(apply_money_rule(value, money))
                     except ValueError:
                         if len(errors) < 20:
-                            errors.append(f"Wiersz {reader.line_num}, kolumna {col['source']}: niepoprawna wartość liczbowa {value!r} dla reguły pieniężnej.")
+                            errors.append(str(localized(f"Wiersz {reader.line_num}, kolumna {col['source']}: niepoprawna wartość liczbowa {value!r} dla reguły pieniężnej.", f"Row {reader.line_num}, column {col['source']}: invalid numeric value {value!r} for the price rule.")))
                         result.append(value)
                     continue
                 matched = False
@@ -248,19 +250,19 @@ def transform(source, columns, output=None, output_delimiter="source"):
                                 break
                 if (mapping or rules) and not matched:
                     if len(errors) < 20:
-                        errors.append(f"Wiersz {reader.line_num}, kolumna {col['source']}: brak reguły dla {value!r}.")
+                        errors.append(str(localized(f"Wiersz {reader.line_num}, kolumna {col['source']}: brak reguły dla {value!r}.", f"Row {reader.line_num}, column {col['source']}: no rule for {value!r}.")))
                 result.append(value)
             writer.writerow(result)
             if len(preview) < 10:
                 preview.append(result)
     except csv.Error as exc:
-        raise IntegrationError(f"Niepoprawny format CSV: {exc}") from exc
+        raise IntegrationError(f"{localized('Niepoprawny format CSV', 'Invalid CSV format')}: {exc}") from exc
     finally:
         text.detach()
     if errors:
-        raise IntegrationError("\n".join(errors) + "\nSprawdź wszystkie wartości w tej kolumnie (pokazano maksymalnie 20 błędów).")
+        raise IntegrationError("\n".join(errors) + "\n" + str(localized("Sprawdź wszystkie wartości w tej kolumnie (pokazano maksymalnie 20 błędów).", "Check all values in this column (at most 20 errors are shown).")))
     if not count:
-        raise IntegrationError("Plik źródłowy nie zawiera żadnych wierszy danych.")
+        raise IntegrationError(str(localized("Plik źródłowy nie zawiera żadnych wierszy danych.", "The source file contains no data rows.")))
     return headers, delimiter, encoding, count, preview
 
 

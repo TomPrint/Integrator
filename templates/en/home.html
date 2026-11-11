@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="grid md:grid-cols-2 gap-10 md:gap-16 items-center py-6 md:py-12">
+  <div>
+    <p class="eyebrow mb-4">CSV files ready for integration</p>
+    <h1>Your data.<br><span class="text-[#4678d0]">A better B2B connection.</span></h1>
+    <p class="muted mt-5 max-w-xl">Mid-Grator helps adapt data from a wholesaler's CSV file to the needs of your shop or company's integration software. Less manual work, more time to grow. It is an intermediate integrator that helps prepare a CSV file tailored to your needs.</p>
+    <p class="muted mt-4"><strong>Try it free for 7 days — 1 integration.</strong> After the trial, we will activate a paid plan only by email agreement. You can cancel at no charge.</p>
+    <div class="flex flex-wrap gap-3 mt-7">
+      <a class="button" href="mailto:kontakt@wickywave.pl?subject=Mid-Grator%20enquiry">Contact us <svg class="icon"><use href="#i-arrow"/></svg></a>
+      {% if user.is_authenticated %}<a class="button secondary" href="{% url 'integration_list' %}">Go to dashboard</a>{% else %}<a class="button secondary" href="{% url 'login' %}">Customer dashboard</a>{% endif %}
+    </div>
+  </div>
+  <div class="card !p-7 sm:!p-10">
+    <span class="icon-box"><svg class="icon"><use href="#i-doc"/></svg></span>
+    <p class="eyebrow mt-6">From source to shop</p>
+    <h2 class="mt-3">One file, your data your way.</h2>
+    <p class="muted mt-3">Enter the CSV file address, select columns and specify value replacements. We will make the finished file available at a separate download link.</p>
+    <div class="step-indicator mt-6 !mb-0"><span>01 · Wholesaler CSV</span><span class="current">02 · Your rules</span><span>03 · Finished file</span></div>
+  </div>
+</section>
+<section class="csv-flow-section" aria-label="The CSV file's journey from wholesaler to shop integrator">
+  <div class="csv-flow" aria-label="The CSV file's journey from wholesaler through Mid-Grator to shop integrator">
+    <div class="csv-flow-stage">
+      <svg class="csv-flow-cube" viewBox="0 0 100 100" aria-hidden="true">
+        <path fill="#dbe7f6" d="M50 6 90 27 50 48 10 27Z"/>
+        <path fill="#8badd8" d="M10 27 50 48 50 93 10 72Z"/>
+        <path fill="#4678d0" d="M90 27 50 48 50 93 90 72Z"/>
+        <path fill="none" stroke="#fff" stroke-opacity=".65" stroke-width="1.5" d="M50 6 90 27 90 72 50 93 10 72 10 27Z M10 27 50 48 90 27 M50 48v45"/>
+        <text x="30" y="61" fill="#153b79" font-size="12" font-weight="800" text-anchor="middle" transform="skewY(27)">CSV</text>
+      </svg>
+      <strong>Wholesaler CSV file</strong><span>Source data</span>
+    </div>
+    <svg class="csv-flow-arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+    <div class="csv-flow-stage"><span class="csv-flow-connector"><svg class="icon" aria-hidden="true"><use href="#i-link"/></svg></span><strong>Mid-Grator</strong><span>Processing file fields</span></div>
+    <svg class="csv-flow-arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+    <div class="csv-flow-stage">
+      <svg class="csv-flow-cube" viewBox="0 0 100 100" aria-hidden="true">
+        <path fill="#f7efd1" d="M50 6 90 27 50 48 10 27Z"/>
+        <path fill="#eedc9a" d="M10 27 50 48 50 93 10 72Z"/>
+        <path fill="#b99546" d="M90 27 50 48 50 93 90 72Z"/>
+        <path fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.5" d="M50 6 90 27 90 72 50 93 10 72 10 27Z M10 27 50 48 90 27 M50 48v45"/>
+        <text x="30" y="61" fill="#765a11" font-size="12" font-weight="800" text-anchor="middle" transform="skewY(27)">CSV</text>
+      </svg>
+      <strong>Finished CSV file</strong><span>Shop integrator requirements</span>
+    </div>
+  </div>
+</section>
+<section class="py-6">
+  <p class="eyebrow mb-3">How it works</p>
+  <h2 class="!text-2xl">Adapt data to your workflow.</h2>
+  <div class="grid gap-4 md:grid-cols-3 mt-5">
+    <div class="stat-card"><span class="icon-box"><svg class="icon"><use href="#i-link"/></svg></span><h3 class="mt-4">Connect a source</h3><p class="muted mt-2">Enter an integration name and the full, direct HTTP or HTTPS address of the wholesaler's CSV file. Mid-Grator downloads the file, detects its delimiter and reads its columns. Then select the columns you need and adapt their names to your system's requirements.</p></div>
+    <div class="stat-card"><span class="icon-box"><svg class="icon"><use href="#i-spark"/></svg></span><h3 class="mt-4">Transform data</h3><p class="muted mt-2">Change the contents of selected columns, for example replacing a numeric stock level with text or “available” with a number. Set your own conditions, such as a stock level of 10 or more as “high quantity”. You can also increase or decrease prices in a selected column by a chosen percentage, for example by 10%.</p></div>
+    <div class="stat-card"><span class="icon-box"><svg class="icon"><use href="#i-clock"/></svg></span><h3 class="mt-4">Publish and update</h3><p class="muted mt-2">Download the result using your individual link or give the link to your shop's integrator. The file is updated at the frequency you choose.</p></div>
+  </div>
+</section>
+<section class="plans-section" aria-labelledby="plans-heading">
+  <p class="eyebrow mb-3">Plans for businesses</p>
+  <h2 id="plans-heading" class="!text-2xl">Choose a plan for your business.</h2>
+  <p class="muted mt-3">Try the service free for 7 days with 1 integration. After the trial, a paid year begins only by email agreement; you can also cancel at no charge.</p>
+  <div class="plans-grid">
+    <article class="plan-card">
+      <div class="plan-heading"><span class="icon-box"><svg class="icon" aria-hidden="true"><use href="#i-link"/></svg></span><span class="plan-label">Get started</span></div>
+      <h3>Basic</h3><p class="plan-description">For businesses looking to start organising their CSV files.</p>
+      <p class="plan-limit"><strong>2</strong> integrations</p><p class="plan-price"><strong>200 PLN</strong> excluding VAT / year</p><p class="plan-gross">246 PLN including VAT / year (23% VAT)</p>
+      <a class="button secondary plan-button" href="mailto:kontakt@wickywave.pl?subject=Mid-Grator%20Basic%20plan%20enquiry">Ask about Basic</a>
+    </article>
+    <article class="plan-card plan-card-plus">
+      <div class="plan-heading"><span class="icon-box"><svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg></span><span class="plan-label">More possibilities</span></div>
+      <h3>Plus</h3><p class="plan-description">For businesses that need room for more integrations.</p>
+      <p class="plan-limit"><strong>4</strong> integrations</p><p class="plan-price"><strong>400 PLN</strong> excluding VAT / year</p><p class="plan-gross">492 PLN including VAT / year (23% VAT)</p>
+      <a class="button plan-button" href="mailto:kontakt@wickywave.pl?subject=Mid-Grator%20Plus%20plan%20enquiry">Ask about Plus</a>
+    </article>
+  </div>
+</section>
+<section class="card !mt-8">
+  <h2>Want to learn more?</h2><p class="muted mt-2">Tell us about your files and shop integrator.</p>
+  <p class="mt-4"><a class="contact-email" href="mailto:kontakt@wickywave.pl?subject=Mid-Grator%20enquiry">kontakt@wickywave.pl</a></p>
+</section>
+{% endblock %}

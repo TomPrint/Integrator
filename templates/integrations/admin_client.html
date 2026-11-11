@@ -6,15 +6,16 @@
 <div class="card"><a class="button secondary" href="{% url 'admin_edit_client' client.pk %}">Edytuj klienta</a>
 {% url 'admin_delete_client' client.pk as delete_client_url %}
 {% include "integrations/delete_confirmation.html" with action=delete_client_url label="Usuń klienta" warning="Trwale usuniesz konto, dane do faktury, historię akceptacji, wszystkie integracje, ich pliki i linki. Kopie zapasowe i dokumenty poza portalem nie zostaną usunięte." %}</div>
-<div class="card"><h2>Plan i płatność</h2><p>Status: {% if profile.paid %}opłacone{% else %}nieopłacone / wygasło{% endif %}. Wygaśnięcie nie wyłącza integracji automatycznie.</p>
-{% if profile.trial_active %}<p class="notice">Test aktywny od {{ profile.trial_started_at|date:"d.m.Y H:i" }} do {{ profile.trial_expires_at|date:"d.m.Y H:i" }}.</p>{% elif profile.trial_expired %}<p class="alert">Test zakończony {{ profile.trial_ended_at|date:"d.m.Y H:i"|default:"po upływie 7 dni" }}. Integracje testowe są usuwane automatycznie przez zadanie cron.</p>{% endif %}
+<div class="card"><h2>Plan</h2>
+{% if profile.trial_active %}<p>Status: aktywny.</p><p class="notice">Test aktywny od {{ profile.trial_started_at|date:"d.m.Y H:i" }} do {{ profile.trial_expires_at|date:"d.m.Y H:i" }}.</p>{% elif profile.trial_expired %}<p>Status: zakończony.</p><p class="alert">Integracja testowa jest wstrzymana i zostanie usunięta 20 dni po zakończeniu testu lub przy zmianie planu na Podstawowy albo Plus.</p>{% else %}<p>Status: {% if profile.paid %}opłacone{% else %}nieopłacone / wygasło{% endif %}. Wygaśnięcie nie wyłącza integracji automatycznie.</p>{% endif %}
 <form method="post">{% csrf_token %}{{ form.non_field_errors }}
 <fieldset class="settings-options"><legend>Plan</legend>{{ form.plan }}{{ form.plan.errors }}</fieldset>
 <div data-plan-payment-dates{% if form.plan.value == "trial" %} hidden{% endif %}>
 <p>{{ form.paid_from.label_tag }}{{ form.paid_from }}{{ form.paid_from.errors }}</p>
 <p>{{ form.paid_until.label_tag }}{{ form.paid_until }}{{ form.paid_until.errors }}</p>
 </div>
-<p class="muted">Podstawowy: do 2 integracji. Plus: do 4 integracji. Testowy: 1 integracja przez 7 dni od aktywacji; po zakończeniu testu integracje i pliki są usuwane. Daty opłacenia są opcjonalne; podaj obie albo pozostaw obie puste. Przy aktywacji testu daty opłacenia są czyszczone.</p>
+<p class="muted">Podstawowy: do 2 integracji. Plus: do 4 integracji. Testowy: 1 integracja przez 7 dni od aktywacji; integracja testowa zostanie usunięta przy zmianie na inny plan lub 20 dni po zakończeniu testu.</p>
+<p class="muted" data-plan-payment-help{% if form.plan.value == "trial" %} hidden{% endif %}>Daty opłacenia są opcjonalne; podaj obie albo pozostaw obie puste.</p>
 <button>Zapisz plan</button></form></div>
 <div class="card"><h2>Dane do faktury</h2>
 <p>Firma lub imię i nazwisko: <strong>{{ profile.invoice_name|default:"Nie podano" }}</strong><br>
@@ -28,21 +29,23 @@ E-mail do faktury: {{ profile.invoice_email|default:"Nie podano" }}</p></div>
 <br>{% if acceptance.consumed_at %}Wykorzystano przy dodaniu integracji{% if acceptance.integration %}: {{ acceptance.integration.name }}{% else %} (integracja usunięta){% endif %}.{% else %}Potwierdzenie jeszcze nie zostało wykorzystane do dodania integracji.{% endif %}</p>
 {% empty %}<p>Brak zapisanego potwierdzenia regulaminu.</p>{% endfor %}
 </div>
-<div class="card"><h2>Integracje ({{ integrations|length }} / {{ profile.limit }})</h2>
+<div class="card"><h2>Integracje ({{ integrations|length }}{% if profile.trial_expired %} — wstrzymane{% else %} / {{ profile.limit }}{% endif %})</h2>
 {% for item in integrations %}<div class="card"><h3>{{ item.name }}</h3>
-<p>{% if item.admin_disabled %}Wstrzymana — link nie działa{% elif item.active %}Aktywna{% else %}Nieopublikowana{% endif %} · Plik: {% if item.file_size is not None %}{{ item.file_size|filesizeformat }}{% else %}brak{% endif %} · Ostatnia próba: {{ item.last_attempt|default:"brak" }} · Czas: {% if item.last_duration_seconds is not None %}{{ item.last_duration_seconds|floatformat:2 }} s{% else %}brak pomiaru{% endif %}</p>
+<p>{% if profile.trial_expired %}Wstrzymana — test zakończony{% elif item.admin_disabled %}Wstrzymana przez administratora — link nie działa{% elif item.customer_disabled %}Wstrzymana przez klienta — link nie działa{% elif item.active %}Aktywna{% else %}Nieopublikowana{% endif %} · Plik: {% if item.file_size is not None %}{{ item.file_size|filesizeformat }}{% else %}brak{% endif %} · Ostatnia próba: {{ item.last_attempt|default:"brak" }} · Czas: {% if item.last_duration_seconds is not None %}{{ item.last_duration_seconds|floatformat:2 }} s{% else %}brak pomiaru{% endif %}</p>
 {% if item.last_error %}<div class="alert">{{ item.last_error }}</div>{% endif %}
-<form class="inline" method="post" action="{% url 'admin_disable' item.pk %}">{% csrf_token %}<button class="secondary">{% if item.admin_disabled %}Wznów{% else %}Wstrzymaj{% endif %}</button></form>
+{% if not profile.trial_expired %}<form class="inline" method="post" action="{% url 'admin_disable' item.pk %}">{% csrf_token %}<button class="secondary">{% if item.admin_disabled %}Wznów{% else %}Wstrzymaj{% endif %}</button></form>{% endif %}
 {% url 'admin_delete' item.pk as delete_url %}
 {% include "integrations/delete_confirmation.html" with action=delete_url label="Usuń" warning="Trwale usuniesz integrację, reguły, plik i link." %}
 </div>{% empty %}<p>Brak integracji.</p>{% endfor %}</div>
 <script>
   (() => {
     const dates = document.querySelector("[data-plan-payment-dates]");
+    const help = document.querySelector("[data-plan-payment-help]");
     const plans = document.querySelectorAll('input[name="plan"]');
     const updateDatesVisibility = () => {
       const selectedPlan = document.querySelector('input[name="plan"]:checked');
       dates.hidden = selectedPlan && selectedPlan.value === "trial";
+      help.hidden = dates.hidden;
     };
     plans.forEach((plan) => plan.addEventListener("change", updateDatesVisibility));
     updateDatesVisibility();

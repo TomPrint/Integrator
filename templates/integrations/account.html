@@ -1,30 +1,34 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="account-page">
-  <p class="eyebrow mb-3">Twoje ustawienia</p>
-  <h1>Ustawienia konta<span class="text-[#4678d0]">.</span></h1>
-  <p class="muted mt-3">Zarządzaj adresem e-mail i hasłem do swojego konta.</p>
+  <p class="eyebrow mb-3">{% if request.LANGUAGE_CODE == "en" %}Your settings{% else %}Twoje ustawienia{% endif %}</p>
+  <h1>{% if request.LANGUAGE_CODE == "en" %}Account settings{% else %}Ustawienia konta{% endif %}<span class="text-[#4678d0]">.</span></h1>
+  <p class="muted mt-3">{% if request.LANGUAGE_CODE == "en" %}Manage your account email address and password.{% else %}Zarządzaj adresem e-mail i hasłem do swojego konta.{% endif %}</p>
   <div class="card">
-    <h2>Dane użytkownika</h2>
-    <p class="muted mt-2">Login: <strong>{{ user.username }}</strong></p>
+    <h2>{% if request.LANGUAGE_CODE == "en" %}User details{% else %}Dane użytkownika{% endif %}</h2>
+    <p class="muted mt-2">{% if request.LANGUAGE_CODE == "en" %}Username{% else %}Login{% endif %}: <strong>{{ user.username }}</strong></p>
     <form method="post">{% csrf_token %}<input type="hidden" name="action" value="email">
       {{ email_form.as_p }}
-      <button>Zapisz adres e-mail</button>
+      <button>{% if request.LANGUAGE_CODE == "en" %}Save email address{% else %}Zapisz adres e-mail{% endif %}</button>
     </form>
   </div>
   <div class="card">
-    <h2>Zmiana hasła</h2>
-    <p class="muted mt-2">Aby ustawić nowe hasło, podaj najpierw obecne.</p>
+    <h2>{% if request.LANGUAGE_CODE == "en" %}Change password{% else %}Zmiana hasła{% endif %}</h2>
+    <p class="muted mt-2">{% if request.LANGUAGE_CODE == "en" %}Enter your current password to set a new one.{% else %}Aby ustawić nowe hasło, podaj najpierw obecne.{% endif %}</p>
     <form method="post">{% csrf_token %}<input type="hidden" name="action" value="password">
       {{ password_form.as_p }}
-      <button>Zmień hasło</button>
+      <button>{% if request.LANGUAGE_CODE == "en" %}Change password{% else %}Zmień hasło{% endif %}</button>
     </form>
   </div>
   <div class="card">
-    <h2>Usunięcie konta</h2>
-    <p class="muted mt-2">Możesz trwale usunąć swoje konto.</p>
+    <h2>{% if request.LANGUAGE_CODE == "en" %}Delete account{% else %}Usunięcie konta{% endif %}</h2>
+    <p class="muted mt-2">{% if request.LANGUAGE_CODE == "en" %}You can permanently delete your account.{% else %}Możesz trwale usunąć swoje konto.{% endif %}</p>
     {% url 'delete_account' as delete_account_url %}
+    {% if request.LANGUAGE_CODE == "en" %}
+    {% include "integrations/delete_confirmation.html" with action=delete_account_url label="Delete my account" warning="This permanently deletes your account, account data, terms acceptance history, all integrations, their rules and published files. You will be logged out. This cannot be undone. Backups and documents stored outside the portal will not be deleted." %}
+    {% else %}
     {% include "integrations/delete_confirmation.html" with action=delete_account_url label="Usuń moje konto" warning="Trwale usuniesz swoje konto, dane konta, historię akceptacji regulaminu, wszystkie integracje, ich reguły i opublikowane pliki. Zostaniesz wylogowany. Operacji nie można cofnąć. Kopie zapasowe ani dokumenty przechowywane poza portalem nie zostaną usunięte." %}
+    {% endif %}
   </div>
 </div>
 {% endblock %}

@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="step-indicator"><span>01 · Źródło</span><span>02 · Reguły</span><span class="current">03 · Podgląd</span></div>
-<div class="card"><h1>Weryfikacja poprawna</h1>
-<p>Sprawdzono {{ preview.count }} wierszy. Poniżej pierwsze 10 wierszy wyniku. Przed publikacją plik zostanie pobrany i sprawdzony ponownie.</p>
-<p>Separator pliku wyjściowego: <strong>{{ preview.delimiter }}</strong>.</p>
-{% if preview.interval %}<p>Aktualizacja: <strong>{{ preview.interval }}</strong>.</p>{% endif %}
+<div class="step-indicator"><span>01 · {% if request.LANGUAGE_CODE == "en" %}Source{% else %}Źródło{% endif %}</span><span>02 · {% if request.LANGUAGE_CODE == "en" %}Rules{% else %}Reguły{% endif %}</span><span class="current">03 · {% if request.LANGUAGE_CODE == "en" %}Preview{% else %}Podgląd{% endif %}</span></div>
+<div class="card"><h1>{% if request.LANGUAGE_CODE == "en" %}Validation successful{% else %}Weryfikacja poprawna{% endif %}</h1>
+<p>{% if request.LANGUAGE_CODE == "en" %}Checked {{ preview.count }} rows. The first 10 result rows are shown below. The file will be downloaded and checked again before publication.{% else %}Sprawdzono {{ preview.count }} wierszy. Poniżej pierwsze 10 wierszy wyniku. Przed publikacją plik zostanie pobrany i sprawdzony ponownie.{% endif %}</p>
+<p>{% if request.LANGUAGE_CODE == "en" %}Output delimiter{% else %}Separator pliku wyjściowego{% endif %}: <strong>{{ preview.delimiter }}</strong>.</p>
+{% if preview.interval %}<p>{% if request.LANGUAGE_CODE == "en" %}Update{% else %}Aktualizacja{% endif %}: <strong>{{ preview.interval }}</strong>.</p>{% endif %}
 <div class="scroll"><table><thead><tr>{% for name in preview.names %}<th>{{ name }}</th>{% endfor %}</tr></thead>
 <tbody>{% for row in preview.rows %}<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
-<p><a href="{% url 'configure' integration.pk %}">Wróć do reguł</a></p>
-<form method="post" action="{% url 'confirm' integration.pk %}">{% csrf_token %}<button>Potwierdź i opublikuj</button></form>
+<p><a href="{% url 'configure' integration.pk %}">{% if request.LANGUAGE_CODE == "en" %}Back to rules{% else %}Wróć do reguł{% endif %}</a></p>
+<form method="post" action="{% url 'confirm' integration.pk %}">{% csrf_token %}<button>{% if request.LANGUAGE_CODE == "en" %}Confirm and publish{% else %}Potwierdź i opublikuj{% endif %}</button></form>
 </div>
 {% endblock %}

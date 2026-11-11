@@ -1,11 +1,30 @@
 {% load static tailwind_tags %}
 <!doctype html>
-<html lang="pl">
+<html lang="{{ request.LANGUAGE_CODE|default:'pl' }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="robots" content="noindex,nofollow">
-  <title>Mid-Grator — Twoje dane, połączone</title>
+  <meta name="robots" content="{% if seo_indexable %}index,follow{% else %}noindex,nofollow,noarchive{% endif %}">
+  <meta name="description" content="{{ seo_description }}">
+  <meta name="author" content="Mid-Grator">
+  <meta property="og:locale" content="{{ seo_og_locale }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Mid-Grator">
+  <meta property="og:title" content="{{ seo_title }}">
+  <meta property="og:description" content="{{ seo_description }}">
+  <meta property="og:url" content="{{ seo_canonical_url }}">
+  <meta property="og:image" content="{{ seo_image_url }}">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="{{ seo_title }}">
+  <meta name="twitter:description" content="{{ seo_description }}">
+  <meta name="twitter:image" content="{{ seo_image_url }}">
+  <link rel="icon" type="image/png" href="{% static 'images/icon.png' %}">
+  <link rel="canonical" href="{{ seo_canonical_url }}">
+  {% if seo_indexable %}<link rel="alternate" hreflang="pl" href="{{ seo_polish_url }}">
+  <link rel="alternate" hreflang="en" href="{{ seo_english_url }}">
+  <link rel="alternate" hreflang="x-default" href="{{ seo_polish_url }}">{% endif %}
+  <title>{{ seo_title }}</title>
+  {% if seo_indexable %}<script type="application/ld+json">{{ seo_json_ld|safe }}</script>{% endif %}
   {% tailwind_css %}
 </head>
 <body class="min-h-screen flex flex-col">
@@ -19,25 +38,58 @@
   <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 13h6M9 17h6"/></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z"/><path d="m9 12 2 2 4-4"/></symbol>
   <symbol id="i-out" viewBox="0 0 24 24"><path d="M10 17v3H4V4h6v3M14 8l4 4-4 4M8 12h10"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
   <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 2.2 6.8L21 11l-6.8 2.2L12 20l-2.2-6.8L3 11l6.8-2.2L12 2zM19 18v4M17 20h4"/></symbol>
 </svg>
 <header class="bg-white/90 border-b border-[#d5deeb]">
-  <div class="mx-auto max-w-7xl px-5 sm:px-8 min-h-20 flex flex-wrap items-center justify-between gap-3 py-3">
+  <div class="mx-auto max-w-7xl px-5 sm:px-8 min-h-20 flex items-center justify-between gap-4 py-3">
     <a href="{% url 'home' %}" class="header-logo">
-      <img src="{% static 'images/mid-grator-logo.png' %}" width="2000" height="500" alt="Mid-Grator — strona główna">
+      <img src="{% static 'images/mid-grator-logo.png' %}" width="2000" height="500" alt="Mid-Grator — {% if request.LANGUAGE_CODE == 'en' %}home{% else %}strona główna{% endif %}">
     </a>
+    <details class="mobile-menu lg:hidden">
+      <summary class="mobile-menu-toggle" aria-label="{% if request.LANGUAGE_CODE == 'en' %}Open menu{% else %}Otwórz menu{% endif %}">
+        <svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg>
+        <span class="sr-only">{% if request.LANGUAGE_CODE == "en" %}Menu{% else %}Menu{% endif %}</span>
+      </summary>
+      <div class="mobile-menu-panel">
+        {% if user.is_authenticated %}
+        <nav aria-label="{% if request.LANGUAGE_CODE == 'en' %}Main navigation{% else %}Nawigacja główna{% endif %}" class="mobile-nav">
+          {% if user.is_superuser %}
+          <a class="nav-link" href="{% url 'admin_dashboard' %}"><svg class="icon"><use href="#i-shield"/></svg>{% if request.LANGUAGE_CODE == "en" %}Admin dashboard{% else %}Panel administratora{% endif %}</a>
+          {% else %}
+          <a class="nav-link" href="{% url 'integration_list' %}"><svg class="icon"><use href="#i-grid"/></svg>{% if request.LANGUAGE_CODE == "en" %}Integrations{% else %}Integracje{% endif %}</a>
+          <a class="nav-link" href="{% url 'invoice' %}"><svg class="icon"><use href="#i-doc"/></svg>{% if request.LANGUAGE_CODE == "en" %}Billing details{% else %}Dane Faktury{% endif %}</a>
+          {% endif %}
+          <a class="account-nav" href="{% url 'account' %}" aria-label="{% if request.LANGUAGE_CODE == 'en' %}Account settings{% else %}Ustawienia konta{% endif %}: {{ user.username }}"><svg class="icon"><use href="#i-user"/></svg><span class="account-avatar">{{ user.username|slice:":1"|upper }}</span><span>{{ user.username }}</span></a>
+          <form class="logout-nav" method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="secondary !px-3 !py-2 !text-xs" title="{% if request.LANGUAGE_CODE == 'en' %}Log out{% else %}Wyloguj{% endif %}"><svg class="icon"><use href="#i-out"/></svg><span>{% if request.LANGUAGE_CODE == "en" %}Log out{% else %}Wyloguj{% endif %}</span></button></form>
+        </nav>
+        {% else %}
+        <a class="nav-link" href="{% url 'login' %}">{% if request.LANGUAGE_CODE == "en" %}Log in{% else %}Zaloguj się{% endif %} <svg class="icon"><use href="#i-arrow"/></svg></a>
+        {% endif %}
+        <nav aria-label="{% if request.LANGUAGE_CODE == 'en' %}Language{% else %}Język{% endif %}" class="mobile-language">
+          <a href="{{ polish_url }}" lang="pl" aria-current="{% if request.LANGUAGE_CODE == 'pl' %}page{% endif %}" class="inline-flex min-w-9 justify-center rounded-full border border-[#153b79] px-2.5 py-1.5 {% if request.LANGUAGE_CODE == 'pl' %}bg-[#153b79] text-white{% else %}text-[#153b79] hover:bg-[#eaf0fa]{% endif %}">PL</a>
+          <a href="{{ english_url }}" lang="en" aria-current="{% if request.LANGUAGE_CODE == 'en' %}page{% endif %}" class="inline-flex min-w-9 justify-center rounded-full border border-[#153b79] px-2.5 py-1.5 {% if request.LANGUAGE_CODE == 'en' %}bg-[#153b79] text-white{% else %}text-[#153b79] hover:bg-[#eaf0fa]{% endif %}">EN</a>
+        </nav>
+      </div>
+    </details>
+    <div class="hidden items-center justify-end gap-3 lg:flex">
     {% if user.is_authenticated %}
-    <nav aria-label="Nawigacja główna" class="flex flex-wrap items-center gap-1">
+    <nav aria-label="{% if request.LANGUAGE_CODE == 'en' %}Main navigation{% else %}Nawigacja główna{% endif %}" class="flex items-center gap-1">
       {% if user.is_superuser %}
-      <a class="nav-link" href="{% url 'admin_dashboard' %}"><svg class="icon"><use href="#i-shield"/></svg>Panel administratora</a>
+      <a class="nav-link" href="{% url 'admin_dashboard' %}"><svg class="icon"><use href="#i-shield"/></svg>{% if request.LANGUAGE_CODE == "en" %}Admin dashboard{% else %}Panel administratora{% endif %}</a>
       {% else %}
-      <a class="nav-link" href="{% url 'integration_list' %}"><svg class="icon"><use href="#i-grid"/></svg>Integracje</a>
-      <a class="nav-link" href="{% url 'invoice' %}"><svg class="icon"><use href="#i-doc"/></svg>Dane Faktury</a>
+      <a class="nav-link" href="{% url 'integration_list' %}"><svg class="icon"><use href="#i-grid"/></svg>{% if request.LANGUAGE_CODE == "en" %}Integrations{% else %}Integracje{% endif %}</a>
+      <a class="nav-link" href="{% url 'invoice' %}"><svg class="icon"><use href="#i-doc"/></svg>{% if request.LANGUAGE_CODE == "en" %}Billing details{% else %}Dane Faktury{% endif %}</a>
       {% endif %}
-      <a class="account-nav" href="{% url 'account' %}" aria-label="Ustawienia konta: {{ user.username }}"><span class="account-avatar">{{ user.username|slice:":1"|upper }}</span><span>{{ user.username }}</span></a>
-      <form class="logout-nav" method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="secondary !px-3 !py-2 !text-xs" title="Wyloguj"><svg class="icon"><use href="#i-out"/></svg><span class="sr-only">Wyloguj</span></button></form>
+      <a class="account-nav" href="{% url 'account' %}" aria-label="{% if request.LANGUAGE_CODE == 'en' %}Account settings{% else %}Ustawienia konta{% endif %}: {{ user.username }}"><span class="account-avatar">{{ user.username|slice:":1"|upper }}</span><span>{{ user.username }}</span></a>
+      <form class="logout-nav" method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="secondary !px-3 !py-2 !text-xs" title="{% if request.LANGUAGE_CODE == 'en' %}Log out{% else %}Wyloguj{% endif %}"><svg class="icon"><use href="#i-out"/></svg><span class="sr-only">{% if request.LANGUAGE_CODE == "en" %}Log out{% else %}Wyloguj{% endif %}</span></button></form>
     </nav>
-    {% else %}<a class="nav-link" href="{% url 'login' %}">Zaloguj się <svg class="icon"><use href="#i-arrow"/></svg></a>{% endif %}
+    {% else %}<a class="nav-link" href="{% url 'login' %}">{% if request.LANGUAGE_CODE == "en" %}Log in{% else %}Zaloguj się{% endif %} <svg class="icon"><use href="#i-arrow"/></svg></a>{% endif %}
+    <nav aria-label="{% if request.LANGUAGE_CODE == 'en' %}Language{% else %}Język{% endif %}" class="flex items-center gap-1 text-xs font-bold">
+      <a href="{{ polish_url }}" lang="pl" aria-current="{% if request.LANGUAGE_CODE == 'pl' %}page{% endif %}" class="inline-flex min-w-9 justify-center rounded-full border border-[#153b79] px-2.5 py-1.5 {% if request.LANGUAGE_CODE == 'pl' %}bg-[#153b79] text-white{% else %}text-[#153b79] hover:bg-[#eaf0fa]{% endif %}">PL</a>
+      <a href="{{ english_url }}" lang="en" aria-current="{% if request.LANGUAGE_CODE == 'en' %}page{% endif %}" class="inline-flex min-w-9 justify-center rounded-full border border-[#153b79] px-2.5 py-1.5 {% if request.LANGUAGE_CODE == 'en' %}bg-[#153b79] text-white{% else %}text-[#153b79] hover:bg-[#eaf0fa]{% endif %}">EN</a>
+    </nav>
+    </div>
   </div>
 </header>
 <main class="w-full max-w-7xl mx-auto px-5 sm:px-8 py-10 md:py-14 flex-1">
@@ -50,38 +102,38 @@
   </div>
   <div class="relative mx-auto grid max-w-7xl gap-8 px-5 py-10 sm:px-8 lg:grid-cols-[1fr_auto_1fr] lg:items-end lg:gap-10">
     <div>
-      <p class="text-xs font-bold uppercase tracking-[.18em] text-[#eedc9a]">Twoje dane są w dobrych rękach</p>
-      <p class="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">Mniej ręcznej pracy.<br><span class="text-[#eedc9a]">Więcej możliwości.</span></p>
+      <p class="text-xs font-bold uppercase tracking-[.18em] text-[#eedc9a]">{% if request.LANGUAGE_CODE == "en" %}Your data is in good hands{% else %}Twoje dane są w dobrych rękach{% endif %}</p>
+      <p class="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">{% if request.LANGUAGE_CODE == "en" %}Less manual work.<br><span class="text-[#eedc9a]">More possibilities.</span>{% else %}Mniej ręcznej pracy.<br><span class="text-[#eedc9a]">Więcej możliwości.</span>{% endif %}</p>
     </div>
-    <nav aria-label="Informacje prawne" class="flex flex-col items-start gap-4 text-sm lg:flex-row lg:flex-wrap lg:items-center lg:justify-center lg:gap-x-5 lg:gap-y-3">
-        <a href="{% url 'privacy' %}" class="text-white underline underline-offset-4 transition hover:text-[#eedc9a]">Polityka prywatności</a>
-        <a href="{% url 'terms' %}" class="text-white underline underline-offset-4 transition hover:text-[#eedc9a]">Regulamin</a>
-        <button type="button" class="cookie-settings-link" data-cookie-open hidden>Ustawienia cookie</button>
+    <nav aria-label="{% if request.LANGUAGE_CODE == 'en' %}Legal information{% else %}Informacje prawne{% endif %}" class="flex flex-col items-start gap-4 text-sm lg:flex-row lg:flex-wrap lg:items-center lg:justify-center lg:gap-x-5 lg:gap-y-3">
+        <a href="{% url 'privacy' %}" class="text-white underline underline-offset-4 transition hover:text-[#eedc9a]">{% if request.LANGUAGE_CODE == "en" %}Privacy policy{% else %}Polityka prywatności{% endif %}</a>
+        <a href="{% url 'terms' %}" class="text-white underline underline-offset-4 transition hover:text-[#eedc9a]">{% if request.LANGUAGE_CODE == "en" %}Terms and conditions{% else %}Regulamin{% endif %}</a>
+        <button type="button" class="cookie-settings-link" data-cookie-open hidden>{% if request.LANGUAGE_CODE == "en" %}Cookie settings{% else %}Ustawienia cookie{% endif %}</button>
     </nav>
-    <a href="https://wickywave.pl/" target="_blank" rel="noopener noreferrer" aria-label="Wicky Wave (otwiera się w nowej karcie)" class="inline-flex flex-row items-center gap-3 justify-self-start no-underline transition hover:opacity-85 lg:flex-col lg:items-end lg:gap-2 lg:justify-self-end">
+    <a href="https://wickywave.pl/" target="_blank" rel="noopener noreferrer" aria-label="Wicky Wave ({% if request.LANGUAGE_CODE == 'en' %}opens in a new tab{% else %}otwiera się w nowej karcie{% endif %})" class="inline-flex flex-row items-center gap-3 justify-self-start no-underline transition hover:opacity-85 lg:flex-col lg:items-end lg:gap-2 lg:justify-self-end">
       <img src="{% static 'images/wicky-wave-w.png' %}" alt="Wicky Wave" width="72" height="48" class="h-12 w-[4.5rem] object-contain">
       <span class="text-sm font-semibold tracking-wide text-white">Mid-Grator <span class="font-normal text-slate-300">by</span> Wicky Wave</span>
     </a>
   </div>
 </footer>
-<section class="cookie-banner" data-cookie-banner hidden role="region" aria-label="Ustawienia plików cookie">
+<section class="cookie-banner" data-cookie-banner hidden role="region" aria-label="{% if request.LANGUAGE_CODE == 'en' %}Cookie settings{% else %}Ustawienia plików cookie{% endif %}">
   <div>
-    <h2>Twoja prywatność</h2>
-    <p>Używamy niezbędnych plików cookie do działania portalu. Za Twoją zgodą możemy korzystać z Google Analytics, aby analizować korzystanie z serwisu. <a href="{% url 'privacy' %}">Polityka prywatności</a></p>
+    <h2>{% if request.LANGUAGE_CODE == "en" %}Your privacy{% else %}Twoja prywatność{% endif %}</h2>
+    <p>{% if request.LANGUAGE_CODE == "en" %}We use essential cookies to operate the portal. With your consent, we may use Google Analytics to analyse use of the site.{% else %}Używamy niezbędnych plików cookie do działania portalu. Za Twoją zgodą możemy korzystać z Google Analytics, aby analizować korzystanie z serwisu.{% endif %} <a href="{% url 'privacy' %}">{% if request.LANGUAGE_CODE == "en" %}Privacy policy{% else %}Polityka prywatności{% endif %}</a></p>
     <div class="cookie-preferences" data-cookie-preferences hidden>
-      <p><strong>Niezbędne</strong> — zawsze aktywne, potrzebne m.in. do logowania i bezpieczeństwa.</p>
-      <label><input type="checkbox" data-cookie-analytics> <span><strong>Analityczne</strong> — opcjonalny Google Analytics.</span></label>
+      <p>{% if request.LANGUAGE_CODE == "en" %}<strong>Essential</strong> — always active, needed for login and security, among other things.{% else %}<strong>Niezbędne</strong> — zawsze aktywne, potrzebne m.in. do logowania i bezpieczeństwa.{% endif %}</p>
+      <label><input type="checkbox" data-cookie-analytics> <span>{% if request.LANGUAGE_CODE == "en" %}<strong>Analytics</strong> — optional Google Analytics.{% else %}<strong>Analityczne</strong> — opcjonalny Google Analytics.{% endif %}</span></label>
     </div>
-    <p class="cookie-error" data-cookie-error role="alert" hidden>Nie udało się odczytać lub zapisać ustawień. Analityka jest wyłączona w tej karcie. Sprawdź pamięć lokalną przeglądarki; jeśli błąd nie ustąpi, wyczyść dane tej strony, aby usunąć wcześniejszą zgodę.</p>
+    <p class="cookie-error" data-cookie-error role="alert" hidden>{% if request.LANGUAGE_CODE == "en" %}Could not read or save your settings. Analytics is disabled in this tab. Check your browser's local storage; if the error persists, clear this site's data to remove any previous consent.{% else %}Nie udało się odczytać lub zapisać ustawień. Analityka jest wyłączona w tej karcie. Sprawdź pamięć lokalną przeglądarki; jeśli błąd nie ustąpi, wyczyść dane tej strony, aby usunąć wcześniejszą zgodę.{% endif %}</p>
   </div>
   <div class="cookie-actions">
-    <button type="button" class="secondary" data-cookie-manage>Dostosuj</button>
-    <button type="button" class="secondary" data-cookie-reject>Odrzuć opcjonalne</button>
-    <button type="button" class="secondary" data-cookie-save hidden>Zapisz wybór</button>
-    <button type="button" data-cookie-accept>Akceptuj wszystkie</button>
+    <button type="button" class="secondary" data-cookie-manage>{% if request.LANGUAGE_CODE == "en" %}Customise{% else %}Dostosuj{% endif %}</button>
+    <button type="button" class="secondary" data-cookie-reject>{% if request.LANGUAGE_CODE == "en" %}Reject optional{% else %}Odrzuć opcjonalne{% endif %}</button>
+    <button type="button" class="secondary" data-cookie-save hidden>{% if request.LANGUAGE_CODE == "en" %}Save selection{% else %}Zapisz wybór{% endif %}</button>
+    <button type="button" data-cookie-accept>{% if request.LANGUAGE_CODE == "en" %}Accept all{% else %}Akceptuj wszystkie{% endif %}</button>
   </div>
 </section>
-<script src="{% static 'js/cookie-consent.js' %}" data-google-analytics-id="{{ google_analytics_id }}" defer></script>
+<script src="{% static 'js/cookie-consent.js' %}" data-google-analytics-id="{{ google_analytics_id }}" data-language="{{ request.LANGUAGE_CODE }}" defer></script>
 <script src="{% static 'js/delete-confirmation.js' %}" defer></script>
 </body>
 </html>

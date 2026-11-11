@@ -30,11 +30,9 @@ class Command(BaseCommand):
                 raise
 
     def update_due_integrations(self):
-        expired_trials = expire_trials()
-        if expired_trials:
-            self.stdout.write(f"Zakończono testy i usunięto integracje klientów: {expired_trials}.")
+        expire_trials()
         failures = 0
-        candidates = Integration.objects.filter(active=True, admin_disabled=False).only(
+        candidates = Integration.objects.filter(active=True, admin_disabled=False, customer_disabled=False).only(
             "pk", "last_attempt", "last_success", "interval_hours"
         )
         pending = [item for item in candidates.iterator() if due(item)]
@@ -42,8 +40,11 @@ class Command(BaseCommand):
         for item in pending:
             pk = item.pk
             with integration_lock(pk):
-                integration = Integration.objects.filter(pk=pk, active=True, admin_disabled=False).first()
+                integration = Integration.objects.filter(pk=pk, active=True, admin_disabled=False, customer_disabled=False).first()
                 if not integration or not due(integration):
+                    continue
+                profile = getattr(integration.owner, "customer_profile", None)
+                if profile and profile.trial_expired:
                     continue
                 started = time.monotonic()
                 try:
@@ -54,6 +55,8 @@ class Command(BaseCommand):
                             self.stdout.write(f"Integracja {pk}: duży plik, interwał zmieniono na 24 godziny; aktualizacja odłożona.")
                             continue
                         scheduled_for = scheduled_at(integration)
+                        if profile and profile.trial_expired:
+                            continue
                         integration.last_attempt = timezone.now()
                         integration.save(update_fields=["last_attempt"])
                         publish(integration, source, integration.columns, started_at=started,

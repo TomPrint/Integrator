@@ -1,13 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
-<p><a href="{% url 'admin_client' client.pk %}">← Szczegóły klienta</a></p>
-<h1>Edytuj klienta: {{ client.username }}</h1>
+<p><a href="{% url 'admin_client' client.pk %}">← {% if request.LANGUAGE_CODE == "en" %}Customer details{% else %}Szczegóły klienta{% endif %}</a></p>
+<h1>{% if request.LANGUAGE_CODE == "en" %}Edit customer{% else %}Edytuj klienta{% endif %}: {{ client.username }}</h1>
 <div class="card">
   <form method="post">
     {% csrf_token %}
-    <h2>Konto</h2>{{ account_form.as_p }}
-    <h2>Dane firmy i faktury</h2>{{ profile_form.as_p }}
-    <button>Zapisz zmiany</button>
+    <h2>{% if request.LANGUAGE_CODE == "en" %}Account{% else %}Konto{% endif %}</h2>{{ account_form.as_p }}
+    <h2>{% if request.LANGUAGE_CODE == "en" %}Company and billing details{% else %}Dane firmy i faktury{% endif %}</h2>{{ profile_form.as_p }}
+    <button>{% if request.LANGUAGE_CODE == "en" %}Save changes{% else %}Zapisz zmiany{% endif %}</button>
+  </form>
+</div>
+<div class="card">
+  <h2>{% if request.LANGUAGE_CODE == "en" %}Reset initial password{% else %}Reset hasła startowego{% endif %}</h2>
+  <p class="muted">{% if request.LANGUAGE_CODE == "en" %}Set a new temporary password. The customer will be required to change it after signing in.{% else %}Ustaw nowe hasło tymczasowe. Klient będzie musiał zmienić je po zalogowaniu.{% endif %}</p>
+  <form method="post" class="mt-4">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="reset_password">
+    {{ reset_form.as_p }}
+    <button>{% if request.LANGUAGE_CODE == "en" %}Reset password{% else %}Resetuj hasło{% endif %}</button>
   </form>
 </div>
 {% endblock %}

@@ -17,7 +17,8 @@ class LegalPagesTests(TestCase):
             "co najmniej 30 dni", "dotyczące umów na odległość",
             "bezpłatnie przez 7 kolejnych dni", "Test nie przechodzi automatycznie",
             "W okresie testowym klient może korzystać z jednej integracji.",
-            "integracja testowa i jej opublikowane pliki są wtedy usuwane, a konto klienta pozostaje aktywne",
+            "integracja testowa zostaje wstrzymana",
+            "po 20 dniach od zakończenia testu",
             "Okres testowy nie skraca płatnego roku",
             "nie wcześniej niż po zakończeniu testu",
         ):

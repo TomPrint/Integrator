@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-10 md:gap-16 items-center py-4">
-  <div><span class="eyebrow">Witaj w Mid-Grator</span><h1 class="mt-4">Twoje dane.<br><span class="text-[#4678d0]">Twoje zasady.</span></h1><p class="muted mt-5 max-w-md">Łącz pliki hurtowni ze swoim sklepem, zmieniaj wartości i odzyskaj czas na to, co ważne.</p>
-    <div class="flex items-center gap-3 mt-8"><span class="icon-box"><svg class="icon"><use href="#i-shield"/></svg></span><div><p class="font-bold text-sm">Prywatnie i pod kontrolą</p><p class="muted text-sm">Dostęp do integracji tylko dla Ciebie.</p></div></div>
+  <div><span class="eyebrow">{% if request.LANGUAGE_CODE == "en" %}Welcome to Mid-Grator{% else %}Witaj w Mid-Grator{% endif %}</span><h1 class="mt-4">{% if request.LANGUAGE_CODE == "en" %}Your data.<br><span class="text-[#4678d0]">Your rules.</span>{% else %}Twoje dane.<br><span class="text-[#4678d0]">Twoje zasady.</span>{% endif %}</h1><p class="muted mt-5 max-w-md">{% if request.LANGUAGE_CODE == "en" %}Connect wholesaler files to your shop, transform values and make more time for what matters.{% else %}Łącz pliki hurtowni ze swoim sklepem, zmieniaj wartości i odzyskaj czas na to, co ważne.{% endif %}</p>
+    <div class="flex items-center gap-3 mt-8"><span class="icon-box"><svg class="icon"><use href="#i-shield"/></svg></span><div><p class="font-bold text-sm">{% if request.LANGUAGE_CODE == "en" %}Private and under your control{% else %}Prywatnie i pod kontrolą{% endif %}</p><p class="muted text-sm">{% if request.LANGUAGE_CODE == "en" %}Only you can access your integrations.{% else %}Dostęp do integracji tylko dla Ciebie.{% endif %}</p></div></div>
   </div>
-  <div class="card !p-7 sm:!p-10"><p class="eyebrow mb-3">Panel klienta</p><h2 class="!text-2xl">Zaloguj się</h2><p class="muted mt-2 mb-6 text-sm">Konta zakłada administrator. Użyj otrzymanych danych.</p>
-  <form method="post">{% csrf_token %}{{ form.as_p }}<button class="w-full mt-3">Zaloguj <svg class="icon"><use href="#i-arrow"/></svg></button></form></div>
+  <div class="card !p-7 sm:!p-10"><p class="eyebrow mb-3">{% if request.LANGUAGE_CODE == "en" %}Customer dashboard{% else %}Panel klienta{% endif %}</p><h2 class="!text-2xl">{% if request.LANGUAGE_CODE == "en" %}Log in{% else %}Zaloguj się{% endif %}</h2><p class="muted mt-2 mb-6 text-sm">{% if request.LANGUAGE_CODE == "en" %}Accounts are created by the administrator. Use the credentials you received.{% else %}Konta zakłada administrator. Użyj otrzymanych danych.{% endif %}</p>
+  <form method="post">{% csrf_token %}{{ form.as_p }}<button class="w-full mt-3">{% if request.LANGUAGE_CODE == "en" %}Log in{% else %}Zaloguj{% endif %} <svg class="icon"><use href="#i-arrow"/></svg></button></form></div>
 </div>
 {% endblock %}

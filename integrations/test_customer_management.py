@@ -59,6 +59,21 @@ class CustomerManagementTests(TestCase):
         self.assertEqual(self.customer.username, "customer")
         self.assertEqual(self.profile.company_name, "Firma")
 
+    def test_admin_can_reset_customer_initial_password(self):
+        self.profile.must_change_password = False
+        self.profile.save(update_fields=["must_change_password"])
+        url = reverse("admin_edit_client", args=[self.customer.pk])
+        response = self.client.post(url, {
+            "action": "reset_password",
+            "password": "NewInitialPassword835!",
+            "password_confirmation": "NewInitialPassword835!",
+        })
+        self.assertRedirects(response, url)
+        self.customer.refresh_from_db()
+        self.profile.refresh_from_db()
+        self.assertTrue(self.customer.check_password("NewInitialPassword835!"))
+        self.assertTrue(self.profile.must_change_password)
+
     def test_delete_removes_only_selected_customer_and_files(self):
         output_dir = Path(self.directory.name) / "outputs"
         output_dir.mkdir()

@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="account-page">
-  <p class="eyebrow mb-3">Nowa integracja</p>
-  <h1>Potwierdzenie regulaminu<span class="text-[#4678d0]">.</span></h1>
+  <p class="eyebrow mb-3">{% if request.LANGUAGE_CODE == "en" %}New integration{% else %}Nowa integracja{% endif %}</p>
+  <h1>{% if request.LANGUAGE_CODE == "en" %}Accept the terms{% else %}Potwierdzenie regulaminu{% endif %}<span class="text-[#4678d0]">.</span></h1>
   <div class="card">
-    <h2>Zapoznaj się z warunkami</h2>
-    <p class="muted mt-2">Przed dodaniem każdej nowej integracji zapoznaj się z <a href="{% url 'terms' %}" target="_blank" rel="noopener noreferrer">regulaminem usługi</a> (otwiera się w nowej karcie) i potwierdź jego akceptację.</p>
+    <h2>{% if request.LANGUAGE_CODE == "en" %}Read the terms{% else %}Zapoznaj się z warunkami{% endif %}</h2>
+    <p class="muted mt-2">{% if request.LANGUAGE_CODE == "en" %}Before adding each new integration, read the <a href="{% url 'terms' %}" target="_blank" rel="noopener noreferrer">service terms</a> (opens in a new tab) and confirm your acceptance.{% else %}Przed dodaniem każdej nowej integracji zapoznaj się z <a href="{% url 'terms' %}" target="_blank" rel="noopener noreferrer">regulaminem usługi</a> (otwiera się w nowej karcie) i potwierdź jego akceptację.{% endif %}</p>
     <form method="post">{% csrf_token %}
       {{ form.non_field_errors }}
       {{ form.terms_sha256 }}{{ form.terms_sha256.errors }}
       {{ form.accepted.errors }}
       <label class="terms-checkbox">{{ form.accepted }} <span>{{ form.accepted.label }}</span></label>
-      <button type="submit">Potwierdź i przejdź dalej</button>
+      <button type="submit">{% if request.LANGUAGE_CODE == "en" %}Confirm and continue{% else %}Potwierdź i przejdź dalej{% endif %}</button>
     </form>
   </div>
 </div>

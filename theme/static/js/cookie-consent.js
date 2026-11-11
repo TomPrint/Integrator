@@ -1,6 +1,22 @@
 (() => {
   const script = document.currentScript;
   const measurementId = script.dataset.googleAnalyticsId.trim();
+  const isEnglish = script.dataset.language === 'en';
+  const text = isEnglish ? {
+    invalidId: 'Invalid Google Analytics ID: expected format G-...',
+    loadFailed: 'Could not load Google Analytics.',
+    invalidConsent: 'Invalid cookie settings record.',
+    readFailed: 'Could not read cookie settings.',
+    saveFailed: 'Could not save cookie settings.',
+    removeFailed: 'Could not remove previous cookie settings.'
+  } : {
+    invalidId: 'Nieprawidłowy identyfikator Google Analytics: wymagany format G-...',
+    loadFailed: 'Nie udało się załadować Google Analytics.',
+    invalidConsent: 'Nieprawidłowy zapis ustawień cookie.',
+    readFailed: 'Nie można odczytać ustawień cookie.',
+    saveFailed: 'Nie można zapisać ustawień cookie.',
+    removeFailed: 'Nie można usunąć poprzednich ustawień cookie.'
+  };
   const storageKey = 'mid-grator-cookie-consent';
   const maxAge = 365 * 24 * 60 * 60 * 1000;
   const banner = document.querySelector('[data-cookie-banner]');
@@ -15,7 +31,7 @@
   let tagLoaded = false;
 
   if (measurementId && !validId) {
-    console.error('Nieprawidłowy identyfikator Google Analytics: wymagany format G-...');
+    console.error(text.invalidId);
   }
 
   const denied = {
@@ -56,7 +72,7 @@
       const tag = document.createElement('script');
       tag.async = true;
       tag.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
-      tag.addEventListener('error', () => console.error('Nie udało się załadować Google Analytics.'));
+      tag.addEventListener('error', () => console.error(text.loadFailed));
       document.head.appendChild(tag);
       tagLoaded = true;
     } else {
@@ -77,7 +93,7 @@
       try {
         record = JSON.parse(raw);
       } catch (parseError) {
-        console.warn('Nieprawidłowy zapis ustawień cookie.', parseError);
+        console.warn(text.invalidConsent, parseError);
         return null;
       }
       if (!record || typeof record !== 'object') return null;
@@ -87,7 +103,7 @@
           !Number.isFinite(time) || age < 0 || age > maxAge) return null;
       return record.analytics;
     } catch (storageError) {
-      console.error('Nie można odczytać ustawień cookie.', storageError);
+      console.error(text.readFailed, storageError);
       error.hidden = false;
       return null;
     }
@@ -109,11 +125,11 @@
       }));
     } catch (storageError) {
       setAnalytics(false);
-      console.error('Nie można zapisać ustawień cookie.', storageError);
+      console.error(text.saveFailed, storageError);
       try {
         localStorage.removeItem(storageKey);
       } catch (removeError) {
-        console.error('Nie można usunąć poprzednich ustawień cookie.', removeError);
+        console.error(text.removeFailed, removeError);
       }
       error.hidden = false;
       return;

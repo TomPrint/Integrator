@@ -226,7 +226,7 @@ class WorkflowTests(TestCase):
         User = get_user_model()
         self.owner = User.objects.create_user(username="owner", password="ExamplePassword123!")
         self.other = User.objects.create_user(username="other", password="ExamplePassword123!")
-        CustomerProfile.objects.create(user=self.owner, invoice_name="Firma", invoice_address="Warszawa",
+        CustomerProfile.objects.create(user=self.owner, invoice_name="Firma", invoice_nip="1234567890", invoice_address="Warszawa",
                                        invoice_email="faktury@example.org")
         self.client.force_login(self.owner)
         self.client.post(reverse("accept_terms"), {"accepted": "on", "terms_sha256": current_terms()[1]})
@@ -236,7 +236,7 @@ class WorkflowTests(TestCase):
     @patch("integrations.views.fetch_csv", return_value=SOURCE)
     def test_creation_requires_complete_invoice_data(self, fetch):
         profile = self.owner.customer_profile
-        valid = {"invoice_name": "Firma", "invoice_address": "Warszawa", "invoice_email": "faktury@example.org"}
+        valid = {"invoice_name": "Firma", "invoice_nip": "1234567890", "invoice_address": "Warszawa", "invoice_email": "faktury@example.org"}
         for field, value in (("invoice_name", ""), ("invoice_name", "  "),
                              ("invoice_address", ""), ("invoice_email", ""), ("invoice_email", "bledny")):
             with self.subTest(field=field, value=value):
@@ -253,21 +253,21 @@ class WorkflowTests(TestCase):
         self.assertEqual(self.owner.integrations.count(), 2)
         fetch.assert_called_once()
 
-    def test_invoice_required_fields_and_optional_nip(self):
+    def test_invoice_required_fields_and_nip(self):
         profile = self.owner.customer_profile
         response = self.client.post(reverse("invoice"), {
             "invoice_name": " ", "invoice_address": "", "invoice_email": "zly", "invoice_nip": "",
         })
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(set(response.context["form"].errors), {"invoice_name", "invoice_address", "invoice_email"})
+        self.assertEqual(set(response.context["form"].errors), {"invoice_name", "invoice_nip", "invoice_address", "invoice_email"})
         profile.refresh_from_db()
         self.assertEqual(profile.invoice_name, "Firma")
         response = self.client.post(reverse("invoice"), {
-            "invoice_name": "Nowa firma", "invoice_address": "Kraków", "invoice_email": "nowy@example.org", "invoice_nip": "",
+            "invoice_name": "Nowa firma", "invoice_address": "Kraków", "invoice_email": "nowy@example.org", "invoice_nip": "123",
         })
         self.assertRedirects(response, reverse("invoice"))
         profile.refresh_from_db()
-        self.assertEqual(profile.invoice_nip, "")
+        self.assertEqual(profile.invoice_nip, "123")
         self.assertEqual(profile.invoice_name, "Nowa firma")
 
     def test_login_security_headers_and_csrf(self):
@@ -580,11 +580,7 @@ class WorkflowTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"A;10;Pierwszy", b"".join(response.streaming_content))
-        self.client.post(reverse("rotate", args=[self.integration.pk]))
-        self.integration.refresh_from_db()
-        self.assertNotEqual(self.integration.token, token)
-        self.assertEqual(self.client.get(url).status_code, 404)
-        response = self.client.get(reverse("download", args=[self.integration.token]))
+        response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         response.close()
 
@@ -770,16 +766,25 @@ class WorkflowTests(TestCase):
             call_command("update_integrations", stdout=output)
             self.assertIn("pominięto", output.getvalue())
 
-    def test_rotate_revokes_old_download_link(self):
+    def test_customer_can_pause_and_resume_integration(self):
         publish(self.integration, SOURCE, MAPPING)
-        old = self.integration.token
-        self.client.post(reverse("rotate", args=[self.integration.pk]))
+        toggle_url = reverse("toggle_integration", args=[self.integration.pk])
+        self.assertRedirects(self.client.post(toggle_url), reverse("result", args=[self.integration.pk]))
         self.integration.refresh_from_db()
-        self.assertNotEqual(old, self.integration.token)
-        self.assertEqual(self.client.get(reverse("download", args=[old])).status_code, 404)
+        self.assertTrue(self.integration.customer_disabled)
+        self.assertEqual(self.client.get(reverse("download", args=[self.integration.token])).status_code, 404)
+        self.assertRedirects(self.client.post(toggle_url), reverse("result", args=[self.integration.pk]))
+        self.integration.refresh_from_db()
+        self.assertFalse(self.integration.customer_disabled)
         response = self.client.get(reverse("download", args=[self.integration.token]))
         self.assertEqual(response.status_code, 200)
         response.close()
+        self.integration.admin_disabled = True
+        self.integration.save(update_fields=["admin_disabled"])
+        self.assertRedirects(self.client.post(toggle_url), reverse("result", args=[self.integration.pk]))
+        self.integration.refresh_from_db()
+        self.assertTrue(self.integration.admin_disabled)
+        self.assertFalse(self.integration.customer_disabled)
 
 
 class AdminAndPlanTests(TestCase):
@@ -828,7 +833,7 @@ class AdminAndPlanTests(TestCase):
                 self.assertEqual(self.client.get(reverse(name, args=args)).status_code, 403)
         for name, args in (("create", []), ("invoice", []), ("configure", [own.pk]),
                            ("edit_source", [own.pk]), ("confirm", [own.pk]), ("schedule", [own.pk]),
-                           ("delete", [own.pk]), ("rotate", [own.pk])):
+                           ("delete", [own.pk]), ("toggle_integration", [own.pk])):
             with self.subTest(view=name):
                 self.assertEqual(self.client.post(reverse(name, args=args)).status_code, 403)
         self.assertTrue(Integration.objects.filter(pk=own.pk).exists())
@@ -911,6 +916,8 @@ class AdminAndPlanTests(TestCase):
         self.assertTrue(user.customer_profile.must_change_password)
         self.assertEqual(user.customer_profile.company_name, "Firma ABC")
         self.assertEqual(user.customer_profile.invoice_name, "")
+        self.assertEqual(user.customer_profile.plan, "trial")
+        self.assertTrue(user.customer_profile.trial_active)
         self.assertContains(self.client.get(reverse("admin_dashboard")), "Firma ABC")
         self.assertContains(self.client.get(reverse("admin_client", args=[user.pk])), "Firma ABC")
         self.client.logout()

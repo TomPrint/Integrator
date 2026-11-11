@@ -1,15 +1,18 @@
-<details class="inline" data-delete-confirmation>
+<details class="delete-confirmation" data-delete-confirmation
+  data-confirm-label="{% if request.LANGUAGE_CODE == 'en' %}Confirm deletion{% else %}Potwierdź usunięcie{% endif %}"
+  data-wait-label="{% if request.LANGUAGE_CODE == 'en' %}The button will be enabled after 5 seconds.{% else %}Przycisk zostanie odblokowany po 5 sekundach.{% endif %}"
+  data-ready-label="{% if request.LANGUAGE_CODE == 'en' %}You can confirm permanent deletion.{% else %}Możesz potwierdzić trwałe usunięcie.{% endif %}">
   <summary class="button danger">{{ label }}</summary>
-  <div class="alert delete-confirmation-panel" role="group" aria-label="Potwierdzenie usunięcia">
+  <div class="alert delete-confirmation-panel" role="group" aria-label="{% if request.LANGUAGE_CODE == 'en' %}Confirm deletion{% else %}Potwierdzenie usunięcia{% endif %}">
     <p>{{ warning }}</p>
     <form method="post" action="{{ action }}">
       {% csrf_token %}
-      <p class="muted" data-delete-status role="status">Przycisk zostanie odblokowany po 5 sekundach.</p>
+      <p class="muted" data-delete-status role="status">{% if request.LANGUAGE_CODE == "en" %}The button will be enabled after 5 seconds.{% else %}Przycisk zostanie odblokowany po 5 sekundach.{% endif %}</p>
       <div class="delete-confirmation-actions">
-        <button class="danger" type="submit" disabled data-delete-submit>Potwierdź usunięcie (5 s)</button>
-        <button class="secondary" type="button" data-delete-cancel>Anuluj</button>
+        <button class="danger" type="submit" disabled data-delete-submit>{% if request.LANGUAGE_CODE == "en" %}Confirm deletion{% else %}Potwierdź usunięcie{% endif %} (5 s)</button>
+        <button class="secondary" type="button" data-delete-cancel>{% if request.LANGUAGE_CODE == "en" %}Cancel{% else %}Anuluj{% endif %}</button>
       </div>
-      <noscript>Do potwierdzenia usunięcia włącz JavaScript.</noscript>
+      <noscript>{% if request.LANGUAGE_CODE == "en" %}Enable JavaScript to confirm deletion.{% else %}Do potwierdzenia usunięcia włącz JavaScript.{% endif %}</noscript>
     </form>
   </div>
 </details>

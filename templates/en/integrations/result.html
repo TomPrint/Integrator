@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="result-page">
+  <p class="eyebrow mb-3">Integration · result</p>
+  <section class="card result-main">
+    <div class="result-heading">
+      <div><h1>{{ integration.name }}</h1><p class="muted mt-2">Summary of the integration and file settings.</p></div>
+      {% if profile.trial_expired %}<span class="tag tag-warn">Suspended</span>{% elif integration.admin_disabled %}<span class="tag tag-warn">Paused by administrator</span>{% elif integration.customer_disabled %}<span class="tag tag-warn">Paused</span>{% elif integration.active %}<span class="tag">Active</span>{% else %}<span class="tag tag-warn">Unpublished</span>{% endif %}
+    </div>
+    {% if profile.trial_expired %}
+    <div class="alert">The trial plan has ended. The integration is suspended and file downloads are blocked.</div>
+    {% elif integration.admin_disabled %}
+    <div class="alert">The integration is paused by the administrator. Updates and file downloads are blocked.</div>
+    {% elif integration.customer_disabled %}
+    <div class="alert">The integration is paused. Updates and file downloads are blocked.</div>
+    {% elif integration.active %}
+    <div class="result-link-section">
+      <div class="result-link-title"><span class="icon-box"><svg class="icon"><use href="#i-link"/></svg></span><div><h2>Your file is ready</h2><p class="muted">Values have been changed according to the specified rules.</p></div></div>
+      <p class="result-description">You can now use the link in your system or shop integrator.</p>
+      <div class="result-link-box"><span class="result-link-label">CSV file link</span><code class="url">{{ request.scheme }}://{{ request.get_host }}{% url 'download' integration.token %}</code></div>
+      <p class="result-security"><svg class="icon"><use href="#i-shield"/></svg><span>Treat the link like a password. Anyone who knows it can download the file.</span></p>
+    </div>
+    {% else %}<div class="notice">The integration has not yet been published.</div>{% endif %}
+    <div class="result-details">
+      <div><span class="result-detail-label">Update frequency</span><strong>{{ integration.get_interval_hours_display }}</strong></div>
+      <div><span class="result-detail-label">Last successful update</span><strong>{{ integration.last_success|default:"none" }}</strong></div>
+    </div>
+    {% if integration.update_delay_display %}<div class="notice">The last automatic update finished {{ integration.update_delay_display }} later than scheduled.</div>{% endif %}
+    {% if integration.interval_auto_adjusted %}<div class="notice">The source file reached 5 MiB. The interval was automatically changed to every 24 hours.</div>{% endif %}
+    {% if integration.last_error %}<div class="alert">Last error: {{ integration.last_error_display }}</div>{% endif %}
+    {% if not profile.trial_expired and not integration.admin_disabled %}<div class="result-actions">
+      {% if not integration.customer_disabled %}<a class="button" href="{% url 'edit_source' integration.pk %}">Edit integration</a>{% endif %}
+      <form method="post" action="{% url 'toggle_integration' integration.pk %}">{% csrf_token %}<button class="secondary">{% if integration.customer_disabled %}Resume integration{% else %}Pause integration{% endif %}</button></form>
+    </div>{% endif %}
+  </section>
+  <section class="card result-summary">
+    <div><h2>Your integrations</h2>{% if profile.trial_expired %}<p class="muted">The trial integration is suspended.</p>{% else %}<p class="muted">Using {{ count }} of {{ limit }} available integrations.</p>
+    {% if not can_create %}<p class="muted">You have reached your plan's integration limit.</p>{% endif %}{% endif %}</div>
+    <div class="result-summary-actions">{% if can_create %}<a class="button" href="{% url 'create' %}">Add another integration</a>{% endif %}<a class="button secondary" href="{% url 'integration_list' %}">Back to integrations</a></div>
+  </section>
+  <section class="card result-delete">
+    <div><h2>Delete integration</h2><p class="muted">Deletion is permanent and also removes the file and link.</p></div>
+    {% url 'delete' integration.pk as delete_url %}
+    {% include "integrations/delete_confirmation.html" with action=delete_url label="Delete integration" warning="This permanently deletes the integration, rules, file and link." %}
+  </section>
+</div>
+{% endblock %}

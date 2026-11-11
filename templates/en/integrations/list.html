@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flex flex-wrap items-end justify-between gap-5 mb-8">
+  <div><p class="eyebrow mb-3">Your workspace</p><h1>All integrations<span class="text-[#4678d0]">.</span></h1><p class="muted mt-3 max-w-xl">All your data sources in one place. Transform, connect and share files effortlessly.</p></div>
+  {% if integrations|length < profile.limit %}<a class="button" href="{% url 'create' %}"><svg class="icon"><use href="#i-plus"/></svg>Add integration</a>{% endif %}
+</div>
+{% if profile.trial_active %}<div class="notice mb-5" role="status">Trial plan: active until {{ profile.trial_expires_at|date:"d.m.Y H:i" }}. You can use one integration.</div>{% elif profile.trial_expired %}<div class="alert mb-5" role="status">The trial plan has ended. The trial integration is suspended. Contact the administrator to agree on continued use of the service.</div>{% endif %}
+<div class="grid gap-4 sm:grid-cols-3 mb-10">
+  <div class="stat-card flex items-center gap-4"><span class="icon-box"><svg class="icon"><use href="#i-link"/></svg></span><div><p class="text-xs muted font-bold">Integrations used</p><p class="text-2xl font-extrabold mt-1">{{ integrations|length }} <span class="text-base text-[#526985]">{% if profile.trial_expired %}suspended{% else %}/ {{ profile.limit }}{% endif %}</span></p></div></div>
+  <div class="stat-card flex items-center gap-4"><span class="icon-box !bg-[#f7efd1] !text-[#765a11]"><svg class="icon"><use href="#i-spark"/></svg></span><div><p class="text-xs muted font-bold">Your plan</p><p class="text-xl font-extrabold mt-1">{% if profile.trial_expired %}Trial (7 days){% else %}{{ profile.get_plan_display }}{% endif %}</p></div></div>
+  <div class="stat-card flex items-center gap-4"><span class="icon-box"><svg class="icon"><use href="#i-shield"/></svg></span><div><p class="text-xs muted font-bold">Sharing</p><p class="text-xl font-extrabold mt-1">Private link</p></div></div>
+</div>
+<div class="flex items-center justify-between gap-4 mb-3"><div><p class="eyebrow mb-2">Your connections</p><h2>Integration activity</h2></div><span class="text-sm muted">{{ integrations|length }} total</span></div>
+{% for item in integrations %}
+<div class="card !my-3 flex flex-wrap items-center justify-between gap-5">
+  <div class="flex items-start sm:items-center gap-4 min-w-0"><span class="icon-box"><svg class="icon"><use href="#i-doc"/></svg></span><div class="min-w-0"><h3><a class="!text-[#153b79] hover:!text-[#4678d0]" href="{% if item.active or profile.trial_expired %}{% url 'result' item.pk %}{% else %}{% url 'configure' item.pk %}{% endif %}">{{ item.name }}</a></h3><p class="muted text-sm mt-1">{{ item.get_interval_hours_display }} <span class="mx-1">·</span> Last update: {{ item.last_success|default:"none" }}</p>{% if item.update_delay_display %}<p class="notice text-sm">The last automatic update finished {{ item.update_delay_display }} later than scheduled.</p>{% endif %}{% if item.interval_auto_adjusted %}<p class="notice text-sm">The source file reached 5 MiB. The interval was automatically changed to every 24 hours.</p>{% endif %}{% if item.last_error %}<p class="alert text-sm">Update error: {{ item.last_error_display }}</p>{% endif %}</div></div>
+  <div class="flex items-center gap-4">{% if profile.trial_expired %}<span class="tag tag-warn">Suspended</span>{% elif item.admin_disabled %}<span class="tag tag-warn">Paused by administrator</span>{% elif item.customer_disabled %}<span class="tag tag-warn">Paused</span>{% elif item.active %}<span class="tag">Active</span>{% else %}<span class="tag tag-warn">Needs configuration</span>{% endif %}<a class="secondary button !px-3" aria-label="Open integration {{ item.name }}" href="{% if item.active or profile.trial_expired or item.admin_disabled or item.customer_disabled %}{% url 'result' item.pk %}{% else %}{% url 'configure' item.pk %}{% endif %}"><svg class="icon"><use href="#i-arrow"/></svg></a></div>
+</div>
+{% empty %}
+<div class="card text-center !py-14"><span class="icon-box mx-auto !w-14 !h-14"><svg class="icon"><use href="#i-link"/></svg></span><h2 class="mt-5">Your automation starts here</h2><p class="muted mt-2 mb-6">Add your first integration and connect your CSV file to your shop.</p>{% if profile.limit %}<a class="button" href="{% url 'create' %}"><svg class="icon"><use href="#i-plus"/></svg>Add your first integration</a>{% endif %}</div>
+{% endfor %}
+{% endblock %}

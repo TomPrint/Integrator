@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<main class="mx-auto flex w-full max-w-3xl flex-1 items-center px-5 py-20 sm:px-8">
+  <section class="w-full rounded-3xl border border-[#d5deeb] bg-white p-8 text-center shadow-sm sm:p-12">
+    <p class="text-sm font-semibold uppercase tracking-[0.2em] text-[#5274a8]">404</p>
+    {% if request.LANGUAGE_CODE == "en" %}
+    <h1 class="mt-4 text-3xl font-bold text-[#153b79]">Page not found</h1>
+    <p class="mx-auto mt-4 max-w-xl text-[#52647e]">The page you requested does not exist or is no longer available.</p>
+    <a class="button mt-8 inline-flex" href="{% url 'home' %}">Back to home</a>
+    {% else %}
+    <h1 class="mt-4 text-3xl font-bold text-[#153b79]">Nie znaleziono strony</h1>
+    <p class="mx-auto mt-4 max-w-xl text-[#52647e]">Strona, której szukasz, nie istnieje albo nie jest już dostępna.</p>
+    <a class="button mt-8 inline-flex" href="{% url 'home' %}">Wróć na stronę główną</a>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}

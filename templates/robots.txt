@@ -1,2 +1,20 @@
 User-agent: *
-Disallow: /
+Allow: /
+Disallow: /csv/
+Disallow: /en/csv/
+Disallow: /login/
+Disallow: /en/login/
+Disallow: /logout/
+Disallow: /en/logout/
+Disallow: /account/
+Disallow: /en/account/
+Disallow: /control/
+Disallow: /en/control/
+Disallow: /integrations/
+Disallow: /en/integrations/
+Disallow: /new/
+Disallow: /en/new/
+Disallow: /integration/
+Disallow: /en/integration/
+
+Sitemap: {{ request.scheme }}://{{ request.get_host }}/sitemap.xml

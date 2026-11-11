@@ -3,6 +3,7 @@ import secrets
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from .localization import localized, translate_persisted_error
 
 
 def new_token():
@@ -10,7 +11,8 @@ def new_token():
 
 
 class CustomerProfile(models.Model):
-    PLANS = [("basic", "Podstawowy"), ("plus", "Plus"), ("trial", "Testowy (7 dni)")]
+    PLANS = [("basic", localized("Podstawowy", "Basic")), ("plus", "Plus"),
+             ("trial", localized("Testowy (7 dni)", "Trial (7 days)"))]
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="customer_profile")
     company_name = models.CharField(max_length=200, blank=True)
     plan = models.CharField(max_length=10, choices=PLANS, default="basic")
@@ -20,7 +22,7 @@ class CustomerProfile(models.Model):
     paid_until = models.DateField(null=True, blank=True)
     must_change_password = models.BooleanField(default=False)
     invoice_name = models.CharField(max_length=200, blank=True)
-    invoice_nip = models.CharField(max_length=20, blank=True)
+    invoice_nip = models.CharField(max_length=20)
     invoice_address = models.TextField(blank=True)
     invoice_email = models.EmailField(blank=True)
 
@@ -59,14 +61,16 @@ class ProjectError(models.Model):
 
 
 class Integration(models.Model):
-    INTERVALS = [(2, "Co 2 godziny"), (4, "Co 4 godziny"), (8, "Co 8 godzin"),
-                 (12, "Co 12 godzin"), (24, "Co 24 godziny"), (48, "Co 48 godzin"), (168, "Raz na tydzień")]
+    INTERVALS = [(2, localized("Co 2 godziny", "Every 2 hours")), (4, localized("Co 4 godziny", "Every 4 hours")),
+                 (8, localized("Co 8 godzin", "Every 8 hours")), (12, localized("Co 12 godzin", "Every 12 hours")),
+                 (24, localized("Co 24 godziny", "Every 24 hours")), (48, localized("Co 48 godzin", "Every 48 hours")),
+                 (168, localized("Raz na tydzień", "Once a week"))]
     OUTPUT_DELIMITERS = [
-        ("source", "Taki jak w pliku źródłowym"),
-        ("semicolon", "Średnik (;)"),
-        ("comma", "Przecinek (,)"),
-        ("tab", "Tabulator"),
-        ("pipe", "Pionowa kreska (|)"),
+        ("source", localized("Taki jak w pliku źródłowym", "Same as source file")),
+        ("semicolon", localized("Średnik (;)", "Semicolon (;)")),
+        ("comma", localized("Przecinek (,)", "Comma (,)")),
+        ("tab", localized("Tabulator", "Tab")),
+        ("pipe", localized("Pionowa kreska (|)", "Pipe (|)")),
     ]
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="integrations")
     name = models.CharField(max_length=100)
@@ -80,6 +84,7 @@ class Integration(models.Model):
     token = models.CharField(max_length=64, unique=True, default=new_token, editable=False)
     active = models.BooleanField(default=False)
     admin_disabled = models.BooleanField(default=False)
+    customer_disabled = models.BooleanField(default=False)
     last_success = models.DateTimeField(null=True, blank=True)
     last_attempt = models.DateTimeField(null=True, blank=True)
     last_error = models.TextField(blank=True)
@@ -96,8 +101,12 @@ class Integration(models.Model):
         hours, remainder = divmod(self.last_update_delay_seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
         if hours:
-            return f"{hours} godz. {minutes} min {seconds} s"
+            return f"{hours} {localized('godz.', 'hr')} {minutes} min {seconds} s"
         return f"{minutes} min {seconds} s"
+
+    @property
+    def last_error_display(self):
+        return translate_persisted_error(self.last_error)
 
     def __str__(self):
         return self.name

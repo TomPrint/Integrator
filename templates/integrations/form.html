@@ -1,4 +1,4 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="max-w-3xl mx-auto"><p class="eyebrow mb-3">Twoje ustawienia</p><h1>{{ title }}<span class="text-[#4678d0]">.</span></h1><div class="card !mt-7"><form method="post">{% csrf_token %}{{ form.as_p }}<button class="mt-3">Zapisz zmiany <svg class="icon"><use href="#i-arrow"/></svg></button></form></div></div>
+<div class="max-w-3xl mx-auto"><p class="eyebrow mb-3">{% if request.LANGUAGE_CODE == "en" %}Your settings{% else %}Twoje ustawienia{% endif %}</p><h1>{{ title }}<span class="text-[#4678d0]">.</span></h1><div class="card !mt-7"><form method="post">{% csrf_token %}{{ form.as_p }}<button class="mt-3">{% if request.LANGUAGE_CODE == "en" %}Save changes{% else %}Zapisz zmiany{% endif %} <svg class="icon"><use href="#i-arrow"/></svg></button></form></div></div>
 {% endblock %}
