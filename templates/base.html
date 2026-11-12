@@ -119,10 +119,10 @@
 <section class="cookie-banner" data-cookie-banner hidden role="region" aria-label="{% if request.LANGUAGE_CODE == 'en' %}Cookie settings{% else %}Ustawienia plików cookie{% endif %}">
   <div>
     <h2>{% if request.LANGUAGE_CODE == "en" %}Your privacy{% else %}Twoja prywatność{% endif %}</h2>
-    <p>{% if request.LANGUAGE_CODE == "en" %}We use essential cookies to operate the portal. With your consent, we may use Google Analytics to analyse use of the site.{% else %}Używamy niezbędnych plików cookie do działania portalu. Za Twoją zgodą możemy korzystać z Google Analytics, aby analizować korzystanie z serwisu.{% endif %} <a href="{% url 'privacy' %}">{% if request.LANGUAGE_CODE == "en" %}Privacy policy{% else %}Polityka prywatności{% endif %}</a></p>
+    <p>{% if request.LANGUAGE_CODE == "en" %}We use essential cookies to operate the portal. With your consent, we use Google Analytics and Google Tag Manager to analyse use of the site.{% else %}Używamy niezbędnych plików cookie do działania portalu. Za Twoją zgodą korzystamy z Google Analytics i Google Tag Manager, aby analizować korzystanie z serwisu.{% endif %} <a href="{% url 'privacy' %}">{% if request.LANGUAGE_CODE == "en" %}Privacy policy{% else %}Polityka prywatności{% endif %}</a></p>
     <div class="cookie-preferences" data-cookie-preferences hidden>
       <p>{% if request.LANGUAGE_CODE == "en" %}<strong>Essential</strong> — always active, needed for login and security, among other things.{% else %}<strong>Niezbędne</strong> — zawsze aktywne, potrzebne m.in. do logowania i bezpieczeństwa.{% endif %}</p>
-      <label><input type="checkbox" data-cookie-analytics> <span>{% if request.LANGUAGE_CODE == "en" %}<strong>Analytics</strong> — optional Google Analytics.{% else %}<strong>Analityczne</strong> — opcjonalny Google Analytics.{% endif %}</span></label>
+      <label><input type="checkbox" data-cookie-analytics> <span>{% if request.LANGUAGE_CODE == "en" %}<strong>Analytics</strong> — optional Google Analytics and Google Tag Manager.{% else %}<strong>Analityczne</strong> — opcjonalne Google Analytics i Google Tag Manager.{% endif %}</span></label>
     </div>
     <p class="cookie-error" data-cookie-error role="alert" hidden>{% if request.LANGUAGE_CODE == "en" %}Could not read or save your settings. Analytics is disabled in this tab. Check your browser's local storage; if the error persists, clear this site's data to remove any previous consent.{% else %}Nie udało się odczytać lub zapisać ustawień. Analityka jest wyłączona w tej karcie. Sprawdź pamięć lokalną przeglądarki; jeśli błąd nie ustąpi, wyczyść dane tej strony, aby usunąć wcześniejszą zgodę.{% endif %}</p>
   </div>
@@ -133,7 +133,7 @@
     <button type="button" data-cookie-accept>{% if request.LANGUAGE_CODE == "en" %}Accept all{% else %}Akceptuj wszystkie{% endif %}</button>
   </div>
 </section>
-<script src="{% static 'js/cookie-consent.js' %}" data-google-analytics-id="{{ google_analytics_id }}" data-language="{{ request.LANGUAGE_CODE }}" defer></script>
+<script src="{% static 'js/cookie-consent.js' %}" data-google-analytics-id="{{ google_analytics_id }}" data-google-tag-manager-id="GTM-TM6GLFG2" data-language="{{ request.LANGUAGE_CODE }}" defer></script>
 <script src="{% static 'js/delete-confirmation.js' %}" defer></script>
 </body>
 </html>

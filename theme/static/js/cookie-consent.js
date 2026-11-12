@@ -1,17 +1,22 @@
 (() => {
   const script = document.currentScript;
   const measurementId = script.dataset.googleAnalyticsId.trim();
+  const containerId = script.dataset.googleTagManagerId.trim();
   const isEnglish = script.dataset.language === 'en';
   const text = isEnglish ? {
     invalidId: 'Invalid Google Analytics ID: expected format G-...',
+    invalidContainerId: 'Invalid Google Tag Manager ID: expected format GTM-...',
     loadFailed: 'Could not load Google Analytics.',
+    containerLoadFailed: 'Could not load Google Tag Manager.',
     invalidConsent: 'Invalid cookie settings record.',
     readFailed: 'Could not read cookie settings.',
     saveFailed: 'Could not save cookie settings.',
     removeFailed: 'Could not remove previous cookie settings.'
   } : {
     invalidId: 'Nieprawidłowy identyfikator Google Analytics: wymagany format G-...',
+    invalidContainerId: 'Nieprawidłowy identyfikator Google Tag Manager: wymagany format GTM-...',
     loadFailed: 'Nie udało się załadować Google Analytics.',
+    containerLoadFailed: 'Nie udało się załadować Google Tag Manager.',
     invalidConsent: 'Nieprawidłowy zapis ustawień cookie.',
     readFailed: 'Nie można odczytać ustawień cookie.',
     saveFailed: 'Nie można zapisać ustawień cookie.',
@@ -27,11 +32,16 @@
   const save = document.querySelector('[data-cookie-save]');
   const open = document.querySelector('[data-cookie-open]');
   const validId = /^G-[A-Z0-9]+$/i.test(measurementId);
+  const validContainerId = /^GTM-[A-Z0-9]+$/i.test(containerId);
   let enabled = false;
   let tagLoaded = false;
+  let containerLoaded = false;
 
   if (measurementId && !validId) {
     console.error(text.invalidId);
+  }
+  if (containerId && !validContainerId) {
+    console.error(text.invalidContainerId);
   }
 
   const denied = {
@@ -56,33 +66,44 @@
 
   function setAnalytics(allow) {
     enabled = allow;
-    if (!validId) return;
-    window[`ga-disable-${measurementId}`] = !allow;
+    if (validId) window[`ga-disable-${measurementId}`] = !allow;
     if (!allow) {
-      if (tagLoaded) window.gtag('consent', 'update', denied);
+      if (tagLoaded || containerLoaded) window.gtag('consent', 'update', denied);
       clearAnalyticsCookies();
       return;
     }
-    if (!tagLoaded) {
+    if (!validId && !validContainerId) return;
+    if (!tagLoaded && !containerLoaded) {
       window.dataLayer = window.dataLayer || [];
       window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
       window.gtag('consent', 'default', denied);
       window.gtag('consent', 'update', { ...denied, analytics_storage: 'granted' });
       window.gtag('js', new Date());
+    }
+    if (validContainerId && !containerLoaded) {
+      window.dataLayer.push({ 'gtm.start': Date.now(), event: 'gtm.js' });
+      const container = document.createElement('script');
+      container.async = true;
+      container.src = `https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(containerId)}`;
+      container.addEventListener('error', () => console.error(text.containerLoadFailed));
+      document.head.appendChild(container);
+      containerLoaded = true;
+    }
+    if (validId && !tagLoaded) {
       const tag = document.createElement('script');
       tag.async = true;
       tag.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
       tag.addEventListener('error', () => console.error(text.loadFailed));
       document.head.appendChild(tag);
       tagLoaded = true;
-    } else {
-      window.gtag('consent', 'update', { ...denied, analytics_storage: 'granted' });
     }
-    window.gtag('config', measurementId, {
-      page_location: location.origin + location.pathname,
-      allow_google_signals: false,
-      allow_ad_personalization_signals: false
-    });
+    if (validId) {
+      window.gtag('config', measurementId, {
+        page_location: location.origin + location.pathname,
+        allow_google_signals: false,
+        allow_ad_personalization_signals: false
+      });
+    }
   }
 
   function readConsent() {
@@ -99,7 +120,7 @@
       if (!record || typeof record !== 'object') return null;
       const time = Date.parse(record.decidedAt);
       const age = Date.now() - time;
-      if (record.version !== 1 || typeof record.analytics !== 'boolean' ||
+      if (record.version !== 2 || typeof record.analytics !== 'boolean' ||
           !Number.isFinite(time) || age < 0 || age > maxAge) return null;
       return record.analytics;
     } catch (storageError) {
@@ -121,15 +142,17 @@
     if (!allow) setAnalytics(false);
     try {
       localStorage.setItem(storageKey, JSON.stringify({
-        version: 1, analytics: allow, decidedAt: new Date().toISOString()
+        version: 2, analytics: allow, decidedAt: new Date().toISOString()
       }));
     } catch (storageError) {
       setAnalytics(false);
       console.error(text.saveFailed, storageError);
       try {
         localStorage.removeItem(storageKey);
+        if (containerLoaded) location.reload();
       } catch (removeError) {
         console.error(text.removeFailed, removeError);
+        if (containerLoaded) location.replace('about:blank');
       }
       error.hidden = false;
       return;
@@ -137,6 +160,7 @@
     error.hidden = true;
     if (allow) setAnalytics(true);
     banner.hidden = true;
+    if (!allow && containerLoaded) location.reload();
   }
 
   document.querySelector('[data-cookie-accept]').addEventListener('click', () => saveConsent(true));
@@ -156,5 +180,6 @@
     setAnalytics(choice === true);
     analytics.checked = enabled;
     banner.hidden = choice !== null;
+    if (choice !== true && containerLoaded) location.reload();
   });
 })();
